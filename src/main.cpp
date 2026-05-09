@@ -1,51 +1,48 @@
-#include <iostream>
-#include <unistd.h>
 #include <sys/wait.h>
+#include <unistd.h>
+
 #include <cstdlib>
+#include <iostream>
 
-void run_process_control() {
-    // Lógica do controle de tempo real e criação de suas threads
-    while (true) {
-        pause(); 
-    }
-}
+/* Gerencia criação de processos, apenas*/
+int main()
+{
+    pid_t pid_main_process = fork();
 
-void run_process_comms() {
-    // Lógica da comunicação e criação de suas threads
-    while (true) {
-        pause(); 
-    }
-}
-
-int main() {
-    pid_t pid_control = fork();
-    
-    if (pid_control < 0) {
-        std::cerr << "Erro no fork (Controle)\n";
-        return EXIT_FAILURE;
-    } 
-    
-    if (pid_control == 0) {
-        run_process_control();
-        exit(EXIT_SUCCESS); 
-    }
-
-    pid_t pid_comms = fork();
-    
-    if (pid_comms < 0) {
-        std::cerr << "Erro no fork (Comunicação)\n";
+    if (pid_main_process < 0)
+    {
+        std::cerr << "Erro no fork para processo principal\n";
         return EXIT_FAILURE;
     }
-    
-    if (pid_comms == 0) {
-        run_process_comms();
-        exit(EXIT_SUCCESS);
+
+    if (pid_main_process == 0)
+    {
+        char* args[] = {(char*)"mainProcessInit", nullptr};
+        execv("./build/mainProcessInit", args);
+        std::cerr << "Erro no execv do processo principal\n";
+        exit(EXIT_FAILURE);
     }
 
-    // Aguarda filhos terminarem
-    int status;
-    waitpid(pid_control, &status, 0);
-    waitpid(pid_comms, &status, 0);
+    pid_t pid_nav_command = fork();
+
+    if (pid_nav_command < 0)
+    {
+        std::cerr << "Erro no fork para comando de navegação\n";
+        return EXIT_FAILURE;
+    }
+
+    if (pid_main_process == 0)
+    {
+        char* args[] = {(char*)"navCommandInit", nullptr};
+        execv("./build/navCommandInit", args);
+        std::cerr << "Erro no execv do processo de comando de navegação\n";
+        exit(EXIT_FAILURE);
+    }
+
+    // TODO (Pedro) : verificar se será necessário saber a forma que o filho
+    // terminou pelo segundo argumento
+    waitpid(pid_main_process, nullptr, 0);
+    waitpid(pid_nav_command, nullptr, 0);
 
     return EXIT_SUCCESS;
 }
