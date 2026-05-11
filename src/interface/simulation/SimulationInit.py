@@ -1,0 +1,1 @@
+# Esse arquivo spawna as threads de simulação e só atualiza a interface

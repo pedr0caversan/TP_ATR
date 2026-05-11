@@ -1,0 +1,1 @@
+# Esse arquivo spawna as threads de operação remota e atualiza o GUI
