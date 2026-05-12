@@ -8,10 +8,9 @@ IndentWidth: 4
 
 PointerAlignment: Left
 
-AccessModifierOffset: -4
+IndentAccessModifiers: true
+AccessModifierOffset: 0
 
 SortIncludes: CaseSensitive
-
-BreakBeforeBraces: Allman
 
 ...
