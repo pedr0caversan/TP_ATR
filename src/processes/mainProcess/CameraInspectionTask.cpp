@@ -2,9 +2,7 @@
 
 #include <unistd.h>
 
-void cameraInspectionHandler()
-{
-    while (true)
-    {
+void cameraInspectionHandler() {
+    while (true) {
     }
 }

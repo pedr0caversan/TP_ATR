@@ -1,3 +1,5 @@
 #pragma once
 
-void ceilingReconstructionHandler();
+#include <semaphore>
+
+void ceilingReconstructionHandler(std::binary_semaphore& x_was_sent);
