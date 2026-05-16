@@ -11,6 +11,10 @@ struct pos_buffer {
         int pos;
 };
 
+struct vel_buffer {
+        int vel;
+};
+
 struct coord_buffer {
         std::chrono::system_clock timestamp;
         int coord[2];
@@ -18,7 +22,7 @@ struct coord_buffer {
 
 class Buffer {
     public:
-        using Item = std::variant<pos_buffer, coord_buffer>;
+        using Item = std::variant<pos_buffer, vel_buffer, coord_buffer>;
 
         Buffer();
         virtual ~Buffer() = default;
