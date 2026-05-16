@@ -1,3 +1,3 @@
 #include "utils/coord_buffer.hpp"
 
-void CoordBuffer::producer(const coord_buffer& item) { Buffer::producer(item); }
+void CoordBuffer::producer(const CoordData& item) { Buffer::producer(item); }

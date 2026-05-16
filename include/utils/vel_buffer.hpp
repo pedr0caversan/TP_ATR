@@ -5,7 +5,7 @@
 
 class VelBuffer : public Buffer {
     public:
-        void producer(const vel_buffer& item);
+        void producer(const VelData& item);
 };
 
 #endif  // VEL_BUFFER_HPP

@@ -2,4 +2,8 @@
 
 #include <semaphore>
 
-void distanceComputationHandler(std::binary_semaphore& x_was_sent);
+#include "utils/pos_buffer.hpp"
+#include "utils/vel_buffer.hpp"
+
+void distanceComputationHandler(std::binary_semaphore& x_was_sent,
+                                PosBuffer& pos_buffer, VelBuffer& vel_buffer);

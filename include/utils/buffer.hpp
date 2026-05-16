@@ -7,22 +7,22 @@
 #include <string>
 #include <variant>
 
-struct pos_buffer {
+struct PosData {
         int pos;
 };
 
-struct vel_buffer {
+struct VelData {
         int vel;
 };
 
-struct coord_buffer {
-        std::chrono::system_clock timestamp;
+struct CoordData {
+        std::chrono::system_clock::time_point timestamp;
         int coord[2];
 };
 
 class Buffer {
     public:
-        using Item = std::variant<pos_buffer, vel_buffer, coord_buffer>;
+        using Item = std::variant<PosData, VelData, CoordData>;
 
         Buffer();
         virtual ~Buffer() = default;

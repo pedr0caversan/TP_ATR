@@ -1,3 +1,3 @@
 #include "utils/pos_buffer.hpp"
 
-void PosBuffer::producer(const pos_buffer& item) { Buffer::producer(item); }
+void PosBuffer::producer(const PosData& item) { Buffer::producer(item); }

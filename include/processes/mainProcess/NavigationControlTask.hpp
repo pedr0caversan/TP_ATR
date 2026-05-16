@@ -1,3 +1,5 @@
 #pragma once
 
-void navigationControlHandler();
+#include "utils/vel_buffer.hpp"
+
+void navigationControlHandler(VelBuffer& vel_buffer);

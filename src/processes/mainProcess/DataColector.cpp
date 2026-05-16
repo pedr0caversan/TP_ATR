@@ -2,22 +2,22 @@
 
 #include <unistd.h>
 
-void updateHistory(std::vector<coord_buffer>& history,
-                   const coord_buffer& new_item) {
+#include <iostream>
+
+#include "utils/coord_buffer.hpp"
+
+void updateHistory(std::vector<CoordData>& history, const CoordData& new_item) {
     history.push_back(new_item);
     if (history.size() > 50) {
         history.erase(history.begin());
     }
 }
 
-coord_buffer getBufferData(CoordBuffer* buffer) {
-    coord_buffer item;
-    item = buffer->consumer();
-    return item;
+CoordData getBufferData(CoordBuffer* buffer) {
+    return std::get<CoordData>(buffer->consumer());
 }
 
-float calcConfidence(const coord_buffer& item,
-                     std::vector<coord_buffer>& history) {
+float calcConfidence(const CoordData& item, std::vector<CoordData>& history) {
     if (history.empty()) {
         return 0.0;
     }
@@ -33,7 +33,7 @@ float calcConfidence(const coord_buffer& item,
     return conf;
 }
 
-void saveDataDB(const coord_buffer& item, float confidence) {
+void saveDataDB(const CoordData& item, float confidence) {
     // Implementation for saving data to database
     formated_data formatted;
     formatted.timestamp = item.timestamp;
@@ -46,7 +46,7 @@ void saveDataDB(const coord_buffer& item, float confidence) {
               << formatted.confidence << std::endl;
 }
 
-void saveDataTopic(const coord_buffer& item, float confidence) {
+void saveDataTopic(const CoordData& item, float confidence) {
     // Implementation for saving data to topic
     formated_data formatted;
     formatted.timestamp = item.timestamp;
@@ -59,10 +59,10 @@ void saveDataTopic(const coord_buffer& item, float confidence) {
               << formatted.confidence << std::endl;
 }
 
-void dataColectorHandler(CoordBuffer* buffer) {
+void dataColectorHandler(CoordBuffer& coord_buf) {
     while (true) {
-        coord_buffer item = getBufferData(buffer);
-        static std::vector<coord_buffer> history;
+        CoordData item = getBufferData(&coord_buf);
+        static std::vector<CoordData> history;
         float confidence = calcConfidence(item, history);
         saveDataDB(item, confidence);
         saveDataTopic(item, confidence);

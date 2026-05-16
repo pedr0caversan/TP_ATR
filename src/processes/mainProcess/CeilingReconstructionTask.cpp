@@ -5,6 +5,9 @@
 #include <chrono>
 #include <thread>
 
+#include "utils/coord_buffer.hpp"
+#include "utils/pos_buffer.hpp"
+
 // Etapa 1
 
 // Filtro EMA (Exponential Moving Average) foi escolhido no lugar de SMA (Simple
@@ -28,7 +31,8 @@ struct RefinedData {
             time_stamp;  // verificar o tipo das variáveis
 };
 
-void ceilingReconstructionHandler(std::binary_semaphore& x_was_sent) {
+void ceilingReconstructionHandler(std::binary_semaphore& x_was_sent,
+                                  PosBuffer& pos_buf, CoordBuffer& coord_buf) {
     EMAFilter f_x;
     EMAFilter f_y;
     auto next_wake = std::chrono::steady_clock::now();
@@ -40,8 +44,7 @@ void ceilingReconstructionHandler(std::binary_semaphore& x_was_sent) {
 
         x_was_sent.acquire();  // garante que o valor da coordenada no buffer de
                                // cima já foi atualizado
-        int x_coord =
-            1;  // aqui eu leio o valor da coordenada x no buffer de cima
+        int x_coord = std::get<PosData>(pos_buf.consumer()).pos;
 
         int y_coord = 1;  // aqui eu leio o valor percebido pelo lidar
 

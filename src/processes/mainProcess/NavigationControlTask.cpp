@@ -4,7 +4,7 @@
 
 // Etapa 1
 
-void navigationControlHandler() {
+void navigationControlHandler(VelBuffer& vel_buffer) {
     while (true) {
     }
 }

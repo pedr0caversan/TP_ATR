@@ -5,7 +5,7 @@
 
 class CoordBuffer : public Buffer {
     public:
-        void producer(const coord_buffer& item);
+        void producer(const CoordData& item);
 };
 
 #endif  // COORD_BUFFER_HPP

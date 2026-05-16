@@ -5,7 +5,7 @@
 
 class PosBuffer : public Buffer {
     public:
-        void producer(const pos_buffer& item);
+        void producer(const PosData& item);
 };
 
 #endif  // POS_BUFFER_HPP
