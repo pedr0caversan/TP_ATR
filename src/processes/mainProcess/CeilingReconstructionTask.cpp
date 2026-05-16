@@ -1,4 +1,4 @@
-#include "processes/mainProcess/CeilingReconstructionTask.h"
+#include "processes/mainProcess/CeilingReconstructionTask.hpp"
 
 #include <unistd.h>
 
@@ -38,8 +38,10 @@ void ceilingReconstructionHandler(std::binary_semaphore& x_was_sent) {
 
         RefinedData refined_data = {0};
 
-        x_was_sent.acquire(); // garante que o valor da coordenada no buffer de cima já foi atualizado
-        int x_coord = 1;  // aqui eu leio o valor da coordenada x no buffer de cima
+        x_was_sent.acquire();  // garante que o valor da coordenada no buffer de
+                               // cima já foi atualizado
+        int x_coord =
+            1;  // aqui eu leio o valor da coordenada x no buffer de cima
 
         int y_coord = 1;  // aqui eu leio o valor percebido pelo lidar
 

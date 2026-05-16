@@ -1,4 +1,4 @@
-#include "processes/mainProcess/DataColector.h"
+#include "processes/mainProcess/DataColector.hpp"
 
 #include <unistd.h>
 

@@ -1,4 +1,4 @@
-#include "processes/mainProcess/DistanceComputationTask.h"
+#include "processes/mainProcess/DistanceComputationTask.hpp"
 
 #include <unistd.h>
 

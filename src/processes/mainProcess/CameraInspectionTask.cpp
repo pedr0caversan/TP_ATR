@@ -1,4 +1,4 @@
-#include "processes/mainProcess/CameraInspectionTask.h"
+#include "processes/mainProcess/CameraInspectionTask.hpp"
 
 #include <unistd.h>
 

@@ -2,13 +2,17 @@
 #include <semaphore>
 #include <thread>
 
-#include "processes/mainProcess/CameraInspectionTask.h"
-#include "processes/mainProcess/CeilingReconstructionTask.h"
-#include "processes/mainProcess/DataColector.h"
-#include "processes/mainProcess/DistanceComputationTask.h"
-#include "processes/mainProcess/NavigationControlTask.h"
+#include "processes/mainProcess/CameraInspectionTask.hpp"
+#include "processes/mainProcess/CeilingReconstructionTask.hpp"
+#include "processes/mainProcess/DataColector.hpp"
+#include "processes/mainProcess/DistanceComputationTask.hpp"
+#include "processes/mainProcess/NavigationControlTask.hpp"
+#include "utils/coord_buffer.hpp"
+#include "utils/pos_buffer.hpp"
+#include "utils/vel_buffer.hpp"
 
 int main() {
+    
     std::binary_semaphore x_was_sent{0};
 
     std::thread t1(cameraInspectionHandler);
