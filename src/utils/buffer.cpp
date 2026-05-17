@@ -28,3 +28,20 @@ Buffer::Item Buffer::consumer() {
     empty_slots.release();
     return item;
 }
+
+Buffer::Item Buffer::consumer_latest() {
+    Buffer::Item item;
+    full_slots.acquire();
+    std::scoped_lock lock(mtx);
+    int n_disposable_items = 0;  // número de itens que serão descartados 
+    while (full_slots.try_acquire()) {
+        n_disposable_items++;
+    }
+    for (int i = 0; i < n_disposable_items; i++) {
+        consome();
+        empty_slots.release();
+    }
+    item = consome();
+    empty_slots.release();
+    return item;
+}

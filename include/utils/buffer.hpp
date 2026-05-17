@@ -29,6 +29,8 @@ class Buffer {
 
         void producer(const Item& item);
         Item consumer();
+        // consome o último item colocado no buffer e descarta o restante
+        Item consumer_latest();
 
     protected:
         static constexpr int BUFFER_SIZE = 100;
