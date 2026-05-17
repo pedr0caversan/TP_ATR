@@ -4,7 +4,7 @@
 
 
 
-// Declarar referências externas
+// Declara a interface pública "Producer" para enviar a distância total calculada para o processo de controle de velocidade
 
 /*
 extern void producer(int dado);
