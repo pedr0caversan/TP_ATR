@@ -9,10 +9,13 @@
 #include "utils/coord_buffer.hpp"
 #include "utils/pos_buffer.hpp"
 
+const int SIMULATION_PERIOD_S = 1;
+
 int i_lidar = 200;
 
+
 void simulateLidarSensor(double t) {
-    i_lidar = static_cast<int>(200 + 100 * std::cos(t));
+    i_lidar = static_cast<int>(200 + 100 * std::cos(2*M_PI*SIMULATION_PERIOD_S*t));
 }
 
 // Filtro EMA (Exponential Moving Average) foi escolhido no lugar de SMA (Simple

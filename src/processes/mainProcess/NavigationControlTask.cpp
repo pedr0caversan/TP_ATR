@@ -3,16 +3,19 @@
 #include <unistd.h>
 
 void navigationControlHandler(VelBuffer& vel_buffer) {
+    auto next_wake = std::chrono::steady_clock::now();
     while (true) {
+        // Tarefa com período de 80 ms
+        next_wake += std::chrono::milliseconds(80);
+        std::this_thread::sleep_until(next_wake);
 
-        int distancia_lida = buffer->consumer();
+        int robot_velocity = std::get<VelData>(vel_buffer.consumer()).vel;
         
         // Processar a distância lida e atualizar as velocidades
-        std::cout << "[Controle Navegação] Distância percorrida lida: " << distancia_lida << " m" << std::endl; 
+        std::cout << "[Controle Navegação] Velocidade lida: " << robot_velocity << " m" << std::endl; 
         
         
-        // Implementar posteriormente o controle PID para ajustar as velocidades com base na distância percorrida e na trajetória desejada
-        usleep(80000); // A tarefa deve ser executada periodicamente a cada 80ms.
+        // Implementar posteriormente o controle PID para ajustar a velocidade do robô
     }
 
 }
