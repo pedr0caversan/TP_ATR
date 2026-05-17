@@ -1,21 +1,14 @@
 #include "processes/mainProcess/DistanceComputationTask.h"
 #include <unistd.h>
 #include <iostream>
-#include <semaphore.h>
+
 
 
 // Declarar referências externas
 
 /*
-#define BUFFER_SIZE 10
-
-extern int buffer_navegacao[BUFFER_SIZE];
-extern int buffer_in;
+extern void producer(int dado);
 extern bool i_encoder;
-
-extern sem_t mutex_buffer_nav;
-extern sem_t spaces_nav;
-extern sem_t items_nav;
 */
 
 
@@ -35,25 +28,14 @@ void distanceComputationHandler()
             distancia_total += 1;
             estado_anterior_encoder = estado_atual;
 
-            /*
-            sem_wait(&spaces_nav);       // Espera haver espaço livre no buffer
-            sem_wait(&mutex_buffer_nav); // Adquire acesso exclusivo ao buffer
+            // Insere a distância total na fila para o processo de controle de velocidade usando a função pública "Producer"
 
-            // Início da Seção Crítica
+            //producer(distancia_total);
+        }
+
+        // A tarefa deve ser executada periodicamente a cada 20ms.
+        usleep(20000);
             
-            buffer_navegacao[buffer_in] = distancia_total;
-            buffer_in = (buffer_in + 1) % BUFFER_SIZE;
-
-            //Fim da Seção Crítica
-            
-
-            sem_post(&mutex_buffer_nav); // Libera o acesso exclusivo
-            sem_post(&items_nav);        // Avisa a tarefa consumidora que há um novo item
-
-            */
-    }
-
-    // A tarefa deve ser executada periodicamente a cada 20ms.
-    usleep(20000);
+    } 
     
 }
