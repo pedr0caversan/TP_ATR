@@ -7,4 +7,6 @@
 
 void distanceComputationHandler(std::binary_semaphore& x_was_sent,
                                 std::binary_semaphore& x_is_needed,
+                                std::binary_semaphore& vel_was_sent,
+                                std::binary_semaphore& vel_is_needed,
                                 PosBuffer& pos_buffer, VelBuffer& vel_buffer);

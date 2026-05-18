@@ -25,8 +25,10 @@ int main() {
                    std::ref(x_is_needed), std::ref(pos_buf),
                    std::ref(coord_buf));
     std::thread t3(distanceComputationHandler, std::ref(x_was_sent),
-                   std::ref(x_is_needed), std::ref(pos_buf), std::ref(vel_buf));
-    std::thread t4(navigationControlHandler, std::ref(vel_buf));
+                   std::ref(x_is_needed), std::ref(vel_was_sent),
+                   std::ref(vel_is_needed), std::ref(pos_buf), std::ref(vel_buf));
+    std::thread t4(navigationControlHandler, std::ref(vel_was_sent),
+                   std::ref(vel_is_needed), std::ref(vel_buf));
     std::thread t5(dataColectorHandler, std::ref(coord_buf));
 
     t1.join();

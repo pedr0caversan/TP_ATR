@@ -29,6 +29,8 @@ void simulateEncoder(double t) {
 
 void distanceComputationHandler(std::binary_semaphore& x_was_sent,
                                 std::binary_semaphore& x_is_needed,
+                                std::binary_semaphore& vel_was_sent,
+                                std::binary_semaphore& vel_is_needed,
                                 PosBuffer& pos_buffer, VelBuffer& vel_buffer) {
     PosData pos_data = {0};
     VelData vel_data = {0};
@@ -70,6 +72,9 @@ void distanceComputationHandler(std::binary_semaphore& x_was_sent,
         pos_buffer.producer(pos_data);
         if (x_is_needed.try_acquire()) {
             x_was_sent.release();
+        }
+        if (vel_is_needed.try_acquire()) {
+            vel_was_sent.release();
         }
     }
 }

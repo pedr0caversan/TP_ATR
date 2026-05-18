@@ -55,7 +55,7 @@ void ceilingReconstructionHandler(std::binary_semaphore& x_was_sent,
         double latency_ms =
             std::chrono::duration<double, std::milli>(now - pos_data.timestamp)
                 .count();
-        // printf("[CeilingReconstruction] latência x: %.3f ms\n", latency_ms);
+        printf("[Reconstrução do Teto] latência x: %.3f ms\n", latency_ms);
 
         double t = std::chrono::duration<double>(
                        std::chrono::steady_clock::now() - task_start)
