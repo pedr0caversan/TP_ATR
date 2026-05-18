@@ -10,12 +10,13 @@
 #include "utils/pos_buffer.hpp"
 
 const int SIMULATION_PERIOD_S = 1;
+const int TASK_PERIOD_MS = 100;
 
 int i_lidar = 200;
 
-
 void simulateLidarSensor(double t) {
-    i_lidar = static_cast<int>(200 + 100 * std::cos(2*M_PI*SIMULATION_PERIOD_S*t));
+    i_lidar = static_cast<int>(
+        200 + 100 * std::cos(2 * M_PI * SIMULATION_PERIOD_S * t));
 }
 
 // Filtro EMA (Exponential Moving Average) foi escolhido no lugar de SMA (Simple
@@ -33,6 +34,7 @@ float filterValue(EMAFilter& f, float new_value) {
 }
 
 void ceilingReconstructionHandler(std::binary_semaphore& x_was_sent,
+                                  std::binary_semaphore& x_is_needed,
                                   PosBuffer& pos_buf, CoordBuffer& coord_buf) {
     EMAFilter f_x;
     EMAFilter f_y;
@@ -40,17 +42,18 @@ void ceilingReconstructionHandler(std::binary_semaphore& x_was_sent,
     auto next_wake = task_start;
     // loop da task
     while (true) {
-        next_wake += std::chrono::milliseconds(100);
+        next_wake += std::chrono::milliseconds(TASK_PERIOD_MS);
         std::this_thread::sleep_until(next_wake);
 
+        x_is_needed.release();
         x_was_sent.acquire();  // garante que o valor da coordenada no
         // buffer de cima já foi atualizado antes de consumi-lo
-        int x_coord = std::get<PosData>(pos_buf.consumer()).pos;
+        int x_coord = std::get<PosData>(pos_buf.consumer_latest()).pos;
 
         double t = std::chrono::duration<double>(
                        std::chrono::steady_clock::now() - task_start)
                        .count();
-        simulateLidarSensor(t); // simulação para testes
+        simulateLidarSensor(t);  // simulação para testes
         int y_coord =
             i_lidar;  // aqui deve ser lido o valor percebido pelo lidar
 

@@ -4,6 +4,8 @@
 
 #include <iostream>
 
+const int TASK_PERIOD_MS = 20;
+
 static bool i_encoder = false;
 static int call_count = 0;  // para simulação do encoder
 
@@ -29,6 +31,7 @@ void simulateEncoder(double t) {
 // TODO (Mylena): derivar velocidade a partir da posição e guardar no buffer
 // vel_buffer
 void distanceComputationHandler(std::binary_semaphore& x_was_sent,
+                                std::binary_semaphore& x_is_needed,
                                 PosBuffer& pos_buffer, VelBuffer& vel_buffer) {
     PosData distancia_total = {0};
     bool estado_anterior_encoder =
@@ -37,8 +40,8 @@ void distanceComputationHandler(std::binary_semaphore& x_was_sent,
     auto next_wake = task_start;
 
     while (true) {
-        // Tarefa com período de 20 ms
-        next_wake += std::chrono::milliseconds(20);
+        // Definição do período da tarefa
+        next_wake += std::chrono::milliseconds(TASK_PERIOD_MS);
         std::this_thread::sleep_until(next_wake);
 
         double t = std::chrono::duration<double>(
@@ -54,7 +57,6 @@ void distanceComputationHandler(std::binary_semaphore& x_was_sent,
             distancia_total.pos += 1;
             estado_anterior_encoder = estado_atual;
 
-<<<<<<< HEAD
             // 1. Derivar a velocidade 
             double delta_t = ciclos_20ms * 0.02;
             double velocidade = 1.0 / delta_t;
@@ -75,12 +77,12 @@ void distanceComputationHandler(std::binary_semaphore& x_was_sent,
                 sem_reconstrucao->release();
             }
         }
-=======
             // Insere a distância total na fila para o processo de controle de
             // velocidade usando a função pública "Producer"
 
             pos_buffer.producer(distancia_total);
->>>>>>> 6600f7b457226964f97161b562b2225babd094c9
+            if (x_is_needed.try_acquire()) {
+                x_was_sent.release();
+            }
         }
-    }
 }
