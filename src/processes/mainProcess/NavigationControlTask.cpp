@@ -11,10 +11,14 @@ void navigationControlHandler(VelBuffer& vel_buffer) {
         next_wake += std::chrono::milliseconds(TASK_PERIOD_MS);
         std::this_thread::sleep_until(next_wake);
 
-        int robot_velocity = std::get<VelData>(vel_buffer.consumer_latest()).vel;
-        
-        // Processar a distância lida e atualizar as velocidades
-        std::cout << "[Controle Navegação] Velocidade lida: " << robot_velocity << " m" << std::endl; 
+        VelData vel_data = std::get<VelData>(vel_buffer.consumer_latest());
+        int robot_velocity = vel_data.vel;
+
+        auto now = std::chrono::steady_clock::now();
+        double latency_ms = std::chrono::duration<double, std::milli>(
+                                now - vel_data.timestamp)
+                                .count();
+        std::cout << "[Controle Navegação] latência vel: " << latency_ms << " ms" << std::endl;
         
         
         // Implementar posteriormente o controle PID para ajustar a velocidade do robô

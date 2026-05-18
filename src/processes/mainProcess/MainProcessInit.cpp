@@ -17,6 +17,8 @@ int main() {
     VelBuffer vel_buf;
     std::binary_semaphore x_was_sent{0};
     std::binary_semaphore x_is_needed{0};
+    std::binary_semaphore vel_was_sent{0};
+    std::binary_semaphore vel_is_needed{0};
 
     std::thread t1(cameraInspectionHandler);
     std::thread t2(ceilingReconstructionHandler, std::ref(x_was_sent),

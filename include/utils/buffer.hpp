@@ -9,14 +9,16 @@
 
 struct PosData {
         int pos;
+        std::chrono::steady_clock::time_point timestamp; // útil para debug
 };
 
 struct VelData {
         int vel;
+        std::chrono::steady_clock::time_point timestamp; // útil para debug
 };
 
 struct CoordData {
-        std::chrono::system_clock::time_point timestamp;
+        std::chrono::steady_clock::time_point timestamp;
         int coord[2];
 };
 

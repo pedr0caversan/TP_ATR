@@ -48,7 +48,14 @@ void ceilingReconstructionHandler(std::binary_semaphore& x_was_sent,
         x_is_needed.release();
         x_was_sent.acquire();  // garante que o valor da coordenada no
         // buffer de cima já foi atualizado antes de consumi-lo
-        int x_coord = std::get<PosData>(pos_buf.consumer_latest()).pos;
+        PosData pos_data = std::get<PosData>(pos_buf.consumer_latest());
+        int x_coord = pos_data.pos;
+
+        auto now = std::chrono::steady_clock::now();
+        double latency_ms =
+            std::chrono::duration<double, std::milli>(now - pos_data.timestamp)
+                .count();
+        // printf("[CeilingReconstruction] latência x: %.3f ms\n", latency_ms);
 
         double t = std::chrono::duration<double>(
                        std::chrono::steady_clock::now() - task_start)
@@ -57,11 +64,9 @@ void ceilingReconstructionHandler(std::binary_semaphore& x_was_sent,
         int y_coord =
             i_lidar;  // aqui deve ser lido o valor percebido pelo lidar
 
-        CoordData refined_data = {std::chrono::system_clock::now(), {0, 0}};
+        CoordData refined_data = {std::chrono::steady_clock::now(), {0, 0}};
         refined_data.coord[0] = filterValue(f_x, x_coord);
-        ;
         refined_data.coord[1] = filterValue(f_y, y_coord);
-        ;
 
         // envio dos dados percebidos pelo lidar e encoder ao buffer de
         // coordenadas

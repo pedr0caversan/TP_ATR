@@ -35,28 +35,28 @@ float calcConfidence(const CoordData& item, std::vector<CoordData>& history) {
 
 void saveDataDB(const CoordData& item, float confidence) {
     // Implementation for saving data to database
-    formated_data formatted;
+    FormatedData formatted;
     formatted.timestamp = item.timestamp;
     formatted.coord[0] = item.coord[0];
     formatted.coord[1] = item.coord[1];
     formatted.confidence = confidence;
 
-    std::cout << "Saving to DB: (" << formatted.coord[0] << ", "
-              << formatted.coord[1] << ") with confidence "
-              << formatted.confidence << std::endl;
+    // std::cout << "Saving to DB: (" << formatted.coord[0] << ", "
+    //           << formatted.coord[1] << ") with confidence "
+    //           << formatted.confidence << std::endl;
 }
 
 void saveDataTopic(const CoordData& item, float confidence) {
     // Implementation for saving data to topic
-    formated_data formatted;
+    FormatedData formatted;
     formatted.timestamp = item.timestamp;
     formatted.coord[0] = item.coord[0];
     formatted.coord[1] = item.coord[1];
     formatted.confidence = confidence;
 
-    std::cout << "Publishing to Topic: (" << formatted.coord[0] << ", "
-              << formatted.coord[1] << ") with confidence "
-              << formatted.confidence << std::endl;
+    // std::cout << "Publishing to Topic: (" << formatted.coord[0] << ", "
+    //           << formatted.coord[1] << ") with confidence "
+    //           << formatted.confidence << std::endl;
 }
 
 void dataColectorHandler(CoordBuffer& coord_buf) {

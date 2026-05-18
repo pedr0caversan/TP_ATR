@@ -5,8 +5,8 @@
 
 #pragma once
 
-struct formated_data {
-        std::chrono::system_clock::time_point timestamp;
+struct FormatedData {
+        std::chrono::steady_clock::time_point timestamp;
         int coord[2];
         float confidence;
 };
