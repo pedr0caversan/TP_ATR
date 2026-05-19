@@ -21,12 +21,12 @@ float calcConfidence(const CoordData& item, std::vector<CoordData>& history) {
     if (history.empty()) {
         return 0.0;
     }
-    int conf = 0.0;
+    float conf = 0.0;
     for (const auto& past_item : history) {
         auto time_diff = std::chrono::duration_cast<std::chrono::milliseconds>(
             item.timestamp - past_item.timestamp);
         // Caso diferença de tempo menor que 100ms, aumenta a confiança
-        if (time_diff.count() < 100) {
+        if (time_diff.count() < 500) {
             conf += 0.1;
         }
     }
@@ -41,9 +41,9 @@ void saveDataDB(const CoordData& item, float confidence) {
     formatted.coord[1] = item.coord[1];
     formatted.confidence = confidence;
 
-    // std::cout << "Saving to DB: (" << formatted.coord[0] << ", "
-    //           << formatted.coord[1] << ") with confidence "
-    //           << formatted.confidence << std::endl;
+    std::cout << "[Coletor de Dados] Saving to DB: (" << formatted.coord[0]
+              << ", " << formatted.coord[1] << ") with confidence "
+              << formatted.confidence << std::endl;
 }
 
 void saveDataTopic(const CoordData& item, float confidence) {
@@ -54,15 +54,15 @@ void saveDataTopic(const CoordData& item, float confidence) {
     formatted.coord[1] = item.coord[1];
     formatted.confidence = confidence;
 
-    // std::cout << "Publishing to Topic: (" << formatted.coord[0] << ", "
-    //           << formatted.coord[1] << ") with confidence "
-    //           << formatted.confidence << std::endl;
+    std::cout << "[Coletor de Dados] Publishing to Topic: ("
+              << formatted.coord[0] << ", " << formatted.coord[1]
+              << ") with confidence " << confidence << std::endl;
 }
 
 void dataColectorHandler(CoordBuffer& coord_buf) {
+    static std::vector<CoordData> history;
     while (true) {
         CoordData item = getBufferData(&coord_buf);
-        static std::vector<CoordData> history;
         float confidence = calcConfidence(item, history);
         saveDataDB(item, confidence);
         saveDataTopic(item, confidence);
