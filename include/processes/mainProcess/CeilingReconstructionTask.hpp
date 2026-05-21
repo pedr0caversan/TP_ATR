@@ -1,6 +1,10 @@
 #pragma once
 
+#include <chrono>
+#include <cmath>
+#include <cstdio>
 #include <semaphore>
+#include <thread>
 
 #include "utils/coord_buffer.hpp"
 #include "utils/pos_buffer.hpp"

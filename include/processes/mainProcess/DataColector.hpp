@@ -1,9 +1,9 @@
+#pragma once
+
 #include <chrono>
 #include <vector>
 
 #include "utils/coord_buffer.hpp"
-
-#pragma once
 
 struct FormatedData {
         std::chrono::steady_clock::time_point timestamp;

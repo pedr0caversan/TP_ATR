@@ -11,6 +11,8 @@
 
 const int SIMULATION_PERIOD_S = 1;
 const int TASK_PERIOD_MS = 100;
+const float EMA_ALPHA =
+    0.5;  // grau de sensibilidade do filtro EMA em relação a valores novos
 
 int i_lidar = 200;
 
@@ -29,8 +31,13 @@ struct EMAFilter {
 };
 
 float filterValue(EMAFilter& f, float new_value) {
-    // TODO (Pedro): implementação do filtro
-    return new_value;
+    if (!f.is_initialized) {
+        f.value = new_value;
+        f.is_initialized = true;
+    } else {
+        f.value = EMA_ALPHA * new_value + (1.0f - EMA_ALPHA) * f.value;
+    }
+    return f.value;
 }
 
 void ceilingReconstructionHandler(std::binary_semaphore& x_was_sent,
