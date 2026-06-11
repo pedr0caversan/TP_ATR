@@ -4,6 +4,7 @@ from pathlib import Path
 
 class Tunnel:
     def __init__(self, map_folder: str) -> None:
+        self.scale_factor = 1
         self.x_correction = 0
         self.y_correction = 0
         self.off_set_x = 0
@@ -12,6 +13,8 @@ class Tunnel:
         self.image_layers = []
 
         self._load_base_images()
+
+        self.colision_rects = [pygame.Rect(0, 500, 1000, 200)]
 
     def _load_base_images(self) -> None:
         valid_extensions = {'.png', '.jpg', '.jpeg', '.bmp', '.gif', '.webp'}
@@ -54,4 +57,29 @@ class Tunnel:
                 rendered_image = image
 
             screen.blit(rendered_image, (x_position, y_position))
+
+        for object in self.colision_rects:
+            scaled_x = object.x * self.scale_factor + self.x_correction
+            scaled_y = object.y * self.scale_factor - self.y_correction
+            scaled_width = object.width * self.scale_factor
+            scaled_height = object.height * self.scale_factor
+            rect = pygame.Rect(scaled_x + self.off_set_x, scaled_y - self.off_set_y, scaled_width, scaled_height)
+            # Desenha um retângulo vermelho para representar a área de colisão, com uma borda de 1 pixel
+            pygame.draw.rect(screen, (255, 0, 0), rect, 2) 
+
+    def check_collision(self, robot_rect: pygame.rect) -> bool:
+        """Detecta se o robot está colidindo com algum rect do mapa
+        """
+        for object in self.colision_rects:
+            if robot_rect.colliderect(object):
+                return True
+        return False
+    
+    def return_ground_intersection(self, robot_rect: pygame.rect) -> pygame.rect:
+        """Retorna o rect de interseção entre o rect de pé do player e algum objeto do mapa 
+        """
+        for object in self.colision_rects:
+            if robot_rect.colliderect(object):
+                    intersection = object.clip(robot_rect)
+                    return intersection
  

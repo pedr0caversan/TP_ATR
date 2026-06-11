@@ -2,6 +2,7 @@ import pygame
 import time
 
 from tunnel import Tunnel
+from robot import Robot
 
 class Simulation():
     def __init__(self) -> None:
@@ -17,6 +18,50 @@ class Simulation():
         self.running = True
 
         self.tunnel = Tunnel("./assets/")
+        self.robot = Robot()
+        self.robot_group = pygame.sprite.Group()
+        self.robot_group.add(self.robot)
+
+    def act_upon_pressed_keys(self) -> None:
+        """Toma as ações necessárias a respeito das teclas pressionadas no teclado.
+
+        Permite a movimentação lateral, o pulo, o ataque e o heal. As ações necessárias - como mudanças de variável - para regular 
+        as animações e atributos do player e inimigos são tomadas em cada bloco condicional de acordo com a necessidade.
+        
+        Args:
+            current_time: tempo atual fornecido pela biblioteca time
+        """
+        keys = pygame.key.get_pressed()
+                
+        if keys[pygame.K_LEFT]:
+            if  not keys[pygame.K_RIGHT]:
+                self.robot.update_position(-self.robot.max_horizontal_speed, 0)
+
+        if keys[pygame.K_RIGHT]:
+            if  not keys[pygame.K_LEFT]:
+                self.robot.update_position(self.robot.max_horizontal_speed, 0)
+
+    def control_robot(self) -> None:
+        """Atualiza as animações do robo e desenha elas na tela
+        """
+        # self.my_camera.follow_player()
+
+        #atualiza todas animações
+        self.robot.draw_collision_rect(self.screen)
+        self.robot.animate()
+
+        self.robot_group.draw(self.screen)
+        self.robot_group.update()
+
+    def apply_gravity_to_robot(self) -> None:
+        """Aplica gravidade ao robot e garante que ele caia no chão corretamente
+        """
+        if not self.robot.is_colliding(self.tunnel):
+            self.robot.apply_delta_gravity_effect(0.003, self.tunnel)
+        else:
+            self.robot.correct_ground_intersection(self.tunnel)
+        if (self.robot.is_colliding(self.tunnel)):
+            self.robot.vertical_speed = 0
 
     def simulation_run(self):
 
@@ -28,7 +73,16 @@ class Simulation():
 
             current_time = time.time()
 
+            self.apply_gravity_to_robot()
+
+            self.act_upon_pressed_keys()
+
             self.tunnel.render_visible_layers(self.screen, 0, 0)
+
+            self.control_robot()
+
+            self.robot_group.draw(self.screen)
+            self.robot_group.update()
 
             pygame.display.flip()
 
