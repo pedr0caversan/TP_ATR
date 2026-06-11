@@ -4,6 +4,10 @@
 #include <cstdlib>
 #include <iostream>
 
+#include "processes/cameraInspection/CameraInspectionTask.hpp"
+#include "processes/mainProcess/MainProcessInit.hpp"
+#include "processes/navigationCommand/NavigationCommandTask.hpp"
+
 /* Gerencia criação de processos, apenas*/
 int main() {
     /*=====================================================================
@@ -18,10 +22,8 @@ int main() {
     }
 
     if (pid_main_process == 0) {
-        char* args[] = {(char*)"mainProcessInit", nullptr};
-        execv("./mainProcess/mainProcessInit", args);
-        std::cerr << "Erro no execv do processo principal\n";
-        exit(EXIT_FAILURE);
+        mainProcessInit();
+        exit(EXIT_SUCCESS);
     }
 
     pid_t pid_nav_command = fork();
@@ -32,10 +34,20 @@ int main() {
     }
 
     if (pid_nav_command == 0) {
-        char* args[] = {(char*)"navCommandInit", nullptr};
-        execv("./navigationCommand/navCommandInit", args);
-        std::cerr << "Erro no execv do processo de comando de navegação\n";
-        exit(EXIT_FAILURE);
+        navigationCommandHandler();
+        exit(EXIT_SUCCESS);
+    }
+
+    pid_t pid_camera = fork();
+
+    if (pid_camera < 0) {
+        std::cerr << "Erro no fork para câmera de inspeção\n";
+        return EXIT_FAILURE;
+    }
+
+    if (pid_camera == 0) {
+        cameraInspectionHandler();
+        exit(EXIT_SUCCESS);
     }
 
     /*=====================================================================
@@ -53,7 +65,6 @@ int main() {
         char* args[] = {(char*)"python3",
                         (char*)"../src/interface/simulation/SimulationInit.py",
                         nullptr};
-        // execute vector path (procura o executável no path)
         execvp("python3", args);
         std::cerr << "Erro no execvp da simulação\n";
         exit(EXIT_FAILURE);
@@ -62,17 +73,16 @@ int main() {
     pid_t pid_remote_op = fork();
 
     if (pid_remote_op < 0) {
-        std::cerr << "Erro no fork para simulação\n";
+        std::cerr << "Erro no fork para operação remota\n";
         return EXIT_FAILURE;
     }
 
     if (pid_remote_op == 0) {
-        char* args[] = {(char*)"python3",
-                        (char*)"../src/interface/simulation/SimulationInit.py",
-                        nullptr};
-        // execute vector path (procura o executável no path)
+        char* args[] = {
+            (char*)"python3",
+            (char*)"../src/interface/remoteOp/RemoteOperationInit.py", nullptr};
         execvp("python3", args);
-        std::cerr << "Erro no execvp da simulação\n";
+        std::cerr << "Erro no execvp da operação remota\n";
         exit(EXIT_FAILURE);
     }
 
@@ -80,10 +90,9 @@ int main() {
     Espera pela finalização dos processos
     =====================================================================*/
 
-    // TODO (Pedro) : verificar se será necessário saber a forma que o filho
-    // terminou pelo segundo argumento da função
     waitpid(pid_main_process, nullptr, 0);
     waitpid(pid_nav_command, nullptr, 0);
+    waitpid(pid_camera, nullptr, 0);
     waitpid(pid_simulation, nullptr, 0);
     waitpid(pid_remote_op, nullptr, 0);
 

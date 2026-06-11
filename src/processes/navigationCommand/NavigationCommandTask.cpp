@@ -1,10 +1,12 @@
-#include <iostream>
-#include <unistd.h>
-#include <cstdlib>
+#include "processes/navigationCommand/NavigationCommandTask.hpp"
 
-int main() {
+#include <unistd.h>
+
+#include <cstdlib>
+#include <iostream>
+
+void navigationCommandHandler() {
     while (true) {
-        // Lógica do processo 
+        // Lógica do processo
     }
-    return EXIT_SUCCESS;
 }

@@ -11,6 +11,7 @@ int commanded_vel = 0;
 
 int velocityController(int reference, int feedback) {
     int control_action;
+    // TODO (Pedro): implementar lógica do controlador assim que o sistema for modelado
     return control_action;
 }
 
