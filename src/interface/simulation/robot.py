@@ -8,10 +8,11 @@ class Robot(pygame.sprite.Sprite):
         self.__sprites_idle = []
 
         # Load All Sprites
-        self.__import_sprites(1,'assets/robo.jpg', self.__sprites_idle)
+        self.__import_sprites(1,'robot/robo.png', self.__sprites_idle)
 
         # Default Boolean and Character States
         self.is_animating = False
+        self.direction = "right"
         self.current_sprite = 0
         self.image = self.__sprites_idle[self.current_sprite]     
 
@@ -20,9 +21,10 @@ class Robot(pygame.sprite.Sprite):
         self.vertical_speed = 0
         self.pos_x = 0
         self.pos_y = 0
-        self.width = 500 / 2# Largura do sprite do robo
-        self.height = 240 / 2# Altura do sprite do robo
-        self.rect_down = pygame.Rect(self.pos_x, self.pos_y+100, self.width, self.height-100)
+        self.width = 100 * 2# Largura do sprite do robo
+        self.height = 80 * 2# Altura do sprite do robo
+        self.rect_down = pygame.Rect(self.pos_x+20, self.pos_y+100, self.width-20, self.height-100)
+        self.rect_left = pygame.Rect(self.pos_x, self.pos_y+50, 10, self.height-100)
         self.rect = pygame.Rect(self.pos_x, self.pos_y, self.width, self.height)
         self.rect.topleft = [self.pos_x, self.pos_y]
         self.speed = [0.0, 0.0]
@@ -42,7 +44,7 @@ class Robot(pygame.sprite.Sprite):
             sprites_vector: vetor de sprites para onde serão importados os sprites
     
         """
-        scale = 0.5
+        scale = 2
         for i in range(number_of_sprites):
             sprite = pygame.image.load(str(arquive)).convert_alpha()
             # Scale the sprite
@@ -59,10 +61,17 @@ class Robot(pygame.sprite.Sprite):
         """
         self.speed[0] = new_pos_x
         self.speed[1] = new_pos_y
-        self.pos_x += self.speed[0]
-        self.pos_y += self.speed[1]
+        if(new_pos_x < 0):
+            self.direction = "left"
+        if(new_pos_x > 0):
+            self.direction = "right"
+        if not(((self.rect.topleft[0] <= 400) and self.direction == "left") or ((self.rect.topleft[0] >= 720) and self.direction == "right")) or (self.x_limit_reached):
+            self.pos_x += self.speed[0]
+        if not self.y_limit_reached:
+            self.pos_y += self.speed[1]
         self.rect.topleft = [self.pos_x, self.pos_y]
         self.rect_down.topleft = [self.pos_x, self.pos_y+100]    
+        self.rect_left.topleft = [self.pos_x, self.pos_y+50]
 
     def apply_delta_gravity_effect(self, delta_t: float, tunnel: tunnel) -> None:
         """Modifica a posição vertical do jogador de acordo com as leis da gravidade no tempo delta_t.
@@ -95,6 +104,14 @@ class Robot(pygame.sprite.Sprite):
         """
         return tunnel.check_collision(self.rect_down)
     
+    def is_left_colliding(self, tunnel: tunnel) -> bool:
+        """Retorna True se o robo estiver colidindo pelo lado esquerdo
+        
+        Args:
+            tunnel: objeto que contém função capaz de checar colisões 
+        """
+        return tunnel.check_collision(self.rect_left)
+    
     def animate(self) -> None:
         self.is_animating = True
     
@@ -116,3 +133,4 @@ class Robot(pygame.sprite.Sprite):
         black = (0,0,0)
         pygame.draw.rect(screen, green, self.rect, 1)
         pygame.draw.rect(screen, black, self.rect_down, 1)
+        pygame.draw.rect(screen, white, self.rect_left, 1)

@@ -14,7 +14,11 @@ class Tunnel:
 
         self._load_base_images()
 
-        self.colision_rects = [pygame.Rect(0, 500, 1000, 200)]
+        ground = pygame.Rect(0, 620, 1280, 100)
+        entrance = pygame.Rect(-10, 0, 10, 720)
+        ceiling = pygame.Rect(0, 0, 1280, 100)
+
+        self.colision_rects = [ground, entrance, ceiling]
 
     def _load_base_images(self) -> None:
         valid_extensions = {'.png', '.jpg', '.jpeg', '.bmp', '.gif', '.webp'}
@@ -59,13 +63,8 @@ class Tunnel:
             screen.blit(rendered_image, (x_position, y_position))
 
         for object in self.colision_rects:
-            scaled_x = object.x * self.scale_factor + self.x_correction
-            scaled_y = object.y * self.scale_factor - self.y_correction
-            scaled_width = object.width * self.scale_factor
-            scaled_height = object.height * self.scale_factor
-            rect = pygame.Rect(scaled_x + self.off_set_x, scaled_y - self.off_set_y, scaled_width, scaled_height)
             # Desenha um retângulo vermelho para representar a área de colisão, com uma borda de 1 pixel
-            pygame.draw.rect(screen, (255, 0, 0), rect, 2) 
+            pygame.draw.rect(screen, (255, 0, 0), object, 2) 
 
     def check_collision(self, robot_rect: pygame.rect) -> bool:
         """Detecta se o robot está colidindo com algum rect do mapa

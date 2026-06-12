@@ -3,6 +3,7 @@ import time
 
 from tunnel import Tunnel
 from robot import Robot
+from camera import Camera
 
 class Simulation():
     def __init__(self) -> None:
@@ -21,6 +22,7 @@ class Simulation():
         self.robot = Robot()
         self.robot_group = pygame.sprite.Group()
         self.robot_group.add(self.robot)
+        self.my_camera = Camera(self.tunnel, self.robot, self.screen)
 
     def act_upon_pressed_keys(self) -> None:
         """Toma as ações necessárias a respeito das teclas pressionadas no teclado.
@@ -34,7 +36,7 @@ class Simulation():
         keys = pygame.key.get_pressed()
                 
         if keys[pygame.K_LEFT]:
-            if  not keys[pygame.K_RIGHT]:
+            if  not keys[pygame.K_RIGHT] and not self.robot.is_left_colliding(self.tunnel):
                 self.robot.update_position(-self.robot.max_horizontal_speed, 0)
 
         if keys[pygame.K_RIGHT]:
@@ -44,7 +46,7 @@ class Simulation():
     def control_robot(self) -> None:
         """Atualiza as animações do robo e desenha elas na tela
         """
-        # self.my_camera.follow_player()
+        self.my_camera.follow_robot()
 
         #atualiza todas animações
         self.robot.draw_collision_rect(self.screen)
@@ -76,8 +78,6 @@ class Simulation():
             self.apply_gravity_to_robot()
 
             self.act_upon_pressed_keys()
-
-            self.tunnel.render_visible_layers(self.screen, 0, 0)
 
             self.control_robot()
 
