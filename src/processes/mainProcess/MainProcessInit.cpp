@@ -4,7 +4,6 @@
 #include <semaphore>
 #include <thread>
 
-#include "processes/cameraInspection/CameraInspectionTask.hpp"
 #include "processes/mainProcess/CeilingReconstructionTask.hpp"
 #include "processes/mainProcess/DataColector.hpp"
 #include "processes/mainProcess/DistanceComputationTask.hpp"
@@ -22,7 +21,6 @@ void mainProcessInit() {
     std::binary_semaphore vel_was_sent{0};
     std::binary_semaphore vel_is_needed{0};
 
-    std::thread t1(cameraInspectionHandler);
     std::thread t2(ceilingReconstructionHandler, std::ref(x_was_sent),
                    std::ref(x_is_needed), std::ref(pos_buf),
                    std::ref(coord_buf));
@@ -34,7 +32,6 @@ void mainProcessInit() {
                    std::ref(vel_is_needed), std::ref(vel_buf));
     std::thread t5(dataColectorHandler, std::ref(coord_buf));
 
-    t1.join();
     t2.join();
     t3.join();
     t4.join();
