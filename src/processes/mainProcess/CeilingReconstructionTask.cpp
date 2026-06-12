@@ -1,11 +1,14 @@
 #include "processes/mainProcess/CeilingReconstructionTask.hpp"
 
+#include <sys/shm.h>
 #include <unistd.h>
 
 #include <chrono>
 #include <cmath>
+#include <csignal>
 #include <thread>
 
+#include "IPC/Channels.hpp"
 #include "utils/coord_buffer.hpp"
 #include "utils/pos_buffer.hpp"
 
@@ -47,7 +50,26 @@ void ceilingReconstructionHandler(std::binary_semaphore& x_was_sent,
     EMAFilter f_y;
     auto task_start = std::chrono::steady_clock::now();
     auto next_wake = task_start;
-    // loop da task
+
+    /*obtenção dos PIDs de NavCommand e CameraInspection pela memória
+    compartilhada para realização do IPC por signal loop da task */
+    int shmid = shmget(SHM_PID_SHARING_KEY, sizeof(SignalPIDs), 0666);
+    if (shmid < 0) {
+        perror("shmget SignalPIDs");
+        return;
+    }
+    SignalPIDs* pids = (SignalPIDs*)shmat(shmid, nullptr, SHM_RDONLY);
+    if (pids == (void*)-1) {
+        perror("shmat SignalPIDs");
+        return;
+    }
+    while (!pids->ready) {  // aguarda pai preencher os PIDs
+        usleep(1000);
+    }
+    pid_t pid_nav_command = pids->pid_nav_command;
+    pid_t pid_cam_inspection = pids->pid_camera;
+    shmdt(pids);  // memória compartilhada desanexada
+
     while (true) {
         next_wake += std::chrono::milliseconds(TASK_PERIOD_MS);
         std::this_thread::sleep_until(next_wake);
@@ -74,6 +96,13 @@ void ceilingReconstructionHandler(std::binary_semaphore& x_was_sent,
         CoordData refined_data = {std::chrono::steady_clock::now(), {0, 0}};
         refined_data.coord[0] = filterValue(f_x, x_coord);
         refined_data.coord[1] = filterValue(f_y, y_coord);
+
+        // TODO (Pedro): implementar condicional de detecção de anomalia
+        bool anomaly_detected = false;
+        if (anomaly_detected) {
+            kill(pid_nav_command, SIGUSR1);
+            kill(pid_cam_inspection, SIGUSR1);
+        }
 
         // envio dos dados percebidos pelo lidar e encoder ao buffer de
         // coordenadas

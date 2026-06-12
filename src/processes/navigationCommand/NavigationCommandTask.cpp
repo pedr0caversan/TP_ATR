@@ -3,12 +3,17 @@
 #include <sys/shm.h>
 #include <unistd.h>
 
+#include <csignal>
 #include <cstdlib>
 #include <iostream>
 
 #include "IPC/Channels.hpp"
 
+static volatile sig_atomic_t anomaly_flag = 0;
+static void on_anomaly(int) { anomaly_flag = 1; }
+
 void navigationCommandHandler() {
+    signal(SIGUSR1, on_anomaly);
     // Abre memória compatilhada para trocar informações com NavigationControl
     int shmid = shmget(SHM_NAV_KEY, sizeof(NavInfo), 0666 | IPC_CREAT);
     if (shmid < 0) {
@@ -42,6 +47,11 @@ void navigationCommandHandler() {
         pthread_mutex_lock(&shm->setpoint_mtx);
         shm->setpoint_vel = nova_vel;
         pthread_mutex_unlock(&shm->setpoint_mtx);
+
+        if (anomaly_flag) {
+            anomaly_flag = 0;
+            // TODO (Pedro): reduzir setpoint de velocidade
+        }
 
         pthread_mutex_lock(&shm->feedback_mtx);
         float current_vel = shm->current_vel;

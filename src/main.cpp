@@ -10,11 +10,26 @@
 #include "processes/mainProcess/MainProcessInit.hpp"
 #include "processes/navigationCommand/NavigationCommandTask.hpp"
 
-/* Gerencia criação de processos, apenas*/
+/* Gerencia criação de processos e IPC, apenas*/
 int main() {
     /*=====================================================================
-    Criação de processos da lógica interna do robô
+    Criação de processos e IPC da lógica interna do robô
     =====================================================================*/
+
+    // compartilha PIDs antes do fork para que filhos herdem essa informação
+    int pid_sharing_shmid =
+        shmget(SHM_PID_SHARING_KEY, sizeof(SignalPIDs), 0666 | IPC_CREAT);
+    if (pid_sharing_shmid < 0) {
+        perror("shmget registry");
+        return EXIT_FAILURE;
+    }
+    SignalPIDs* registry = (SignalPIDs*)shmat(pid_sharing_shmid, nullptr, 0);
+    if (registry == (void*)-1) {
+        perror("shmat registry");
+        return EXIT_FAILURE;
+    }
+    registry->ready = false;  // filhos aguardarão este flag antes de ler os
+                              // PIDs - evita race condition
 
     pid_t pid_main_process = fork();
 
@@ -51,6 +66,14 @@ int main() {
         cameraInspectionHandler();
         exit(EXIT_SUCCESS);
     }
+
+    // preenche memória compartilhada com PIDs que serão usados para realizar
+    // IPC por signal
+    registry->pid_main_process = pid_main_process;
+    registry->pid_nav_command = pid_nav_command;
+    registry->pid_camera = pid_camera;
+    registry->ready = true;  // libera os filhos que estiverem aguardando
+    shmdt(registry);
 
     /*=====================================================================
     Criação de processos relacionados à interface
@@ -98,9 +121,16 @@ int main() {
     waitpid(pid_simulation, nullptr, 0);
     waitpid(pid_remote_op, nullptr, 0);
 
-    // Libera segmento de memória compartilhada
+    // Libera segmentos de memória compartilhada
     int shmid = shmget(SHM_NAV_KEY, sizeof(NavInfo), 0666);
-    if (shmid >= 0) shmctl(shmid, IPC_RMID, nullptr);
+    if (shmid >= 0) {
+        shmctl(shmid, IPC_RMID, nullptr);
+    }
+
+    int reg_shmid = shmget(SHM_PID_SHARING_KEY, sizeof(SignalPIDs), 0666);
+    if (reg_shmid >= 0) {
+        shmctl(reg_shmid, IPC_RMID, nullptr);
+    }
 
     return EXIT_SUCCESS;
 }
