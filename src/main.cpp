@@ -1,9 +1,11 @@
+#include <sys/shm.h>
 #include <sys/wait.h>
 #include <unistd.h>
 
 #include <cstdlib>
 #include <iostream>
 
+#include "IPC/Channels.hpp"
 #include "processes/cameraInspection/CameraInspectionTask.hpp"
 #include "processes/mainProcess/MainProcessInit.hpp"
 #include "processes/navigationCommand/NavigationCommandTask.hpp"
@@ -95,6 +97,10 @@ int main() {
     waitpid(pid_camera, nullptr, 0);
     waitpid(pid_simulation, nullptr, 0);
     waitpid(pid_remote_op, nullptr, 0);
+
+    // Libera segmento de memória compartilhada
+    int shmid = shmget(SHM_NAV_KEY, sizeof(NavInfo), 0666);
+    if (shmid >= 0) shmctl(shmid, IPC_RMID, nullptr);
 
     return EXIT_SUCCESS;
 }
