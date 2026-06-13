@@ -28,7 +28,7 @@ class Camera():
             self.bounded_character.x_limit_reached = True
         else:
             self.bounded_character.x_limit_reached = False
-
+     
         if (self.off_set_y < -212.5) or (self.off_set_y > 320):
             self.bounded_character.y_limit_reached = True
         else:
@@ -36,13 +36,12 @@ class Camera():
 
         if (self.bounded_character.rect.topleft[0] <= 400 and self.bounded_character.speed[0] < 0) and not(self.off_set_x > -4):
             self.off_set_map(self.speed, 0)
-            print(self.off_set_x)
         elif (self.bounded_character.rect.topleft[0] >= 720 and self.bounded_character.speed[0] > 0):
             self.off_set_map(-self.speed, 0)
-            print(self.off_set_x)
-        if (self.bounded_character.rect.topleft[1] <= 200 and self.bounded_character.vertical_speed > 0) and not(self.off_set_y < -212.5):
-            self.off_set_map(0, -self.bounded_character.delta_pos_y)
-        elif self.bounded_character.rect.topleft[1] >= 350 and not self.bounded_character.is_colliding(self.bounded_tunnel) and not(self.off_set_y > 320):
-            self.off_set_map(0, -self.bounded_character.delta_pos_y)
+
+        # if (self.bounded_character.rect.topleft[1] <= 200 and self.bounded_character.vertical_speed > 0) and not(self.off_set_y < -212.5):
+        #     self.off_set_map(0, -self.bounded_character.delta_pos_y)
+        # elif self.bounded_character.rect.topleft[1] >= 350 and not self.bounded_character.is_colliding(self.bounded_tunnel) and not(self.off_set_y > 320):
+        #     self.off_set_map(0, -self.bounded_character.delta_pos_y)
         else:
             self.off_set_map(0, 0)

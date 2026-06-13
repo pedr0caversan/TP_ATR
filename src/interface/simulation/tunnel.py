@@ -1,3 +1,5 @@
+import math
+import random
 import pygame
 from pathlib import Path
 
@@ -14,9 +16,13 @@ class Tunnel:
 
         self._load_base_images()
 
-        ground = pygame.Rect(0, 620, 1280, 100)
+        self.tile_image_map = {} # mapeia tile_number -> index da imagem em self.image_layers
+        self.last_chosen_index = None
+        self.scaled_cache = {} # cache: (w,h) -> [scaled_surfaces...]
+
+        ground = pygame.Rect(0, 670, 1280, 50)
         entrance = pygame.Rect(-10, 0, 10, 720)
-        ceiling = pygame.Rect(0, 0, 1280, 100)
+        ceiling = pygame.Rect(0, 0, 1280, 80)
 
         self.colision_rects = [ground, entrance, ceiling]
 
@@ -51,20 +57,50 @@ class Tunnel:
             off_set_y: deslocamento vertical aplicado na renderização
         """
         screen_width, screen_height = screen.get_size()
-        x_position = self.x_correction + self.off_set_x - off_set_x
-        y_position = self.y_correction + self.off_set_y - off_set_y
+        scroll_x = off_set_x + self.x_correction
+        scroll_y = off_set_y + self.y_correction
 
-        for image in self.image_layers:
-            if image.get_size() != (screen_width, screen_height):
-                rendered_image = pygame.transform.scale(image, (screen_width, screen_height))
-            else:
-                rendered_image = image
+        # escala e cache das imagens conforme o tamanho da tela
+        size_key = (screen_width, screen_height)
+        if size_key not in self.scaled_cache:
+            self.scaled_cache[size_key] = [
+                pygame.transform.scale(img, size_key) if img.get_size() != size_key else img
+                for img in self.image_layers
+            ]
+        scaled_images = self.scaled_cache[size_key]
 
-            screen.blit(rendered_image, (x_position, y_position))
+        # offset modular para posicionar duas tiles contínuas
+        offset = scroll_x % screen_width
+        left_x = offset - screen_width
+        right_x = offset
 
-        for object in self.colision_rects:
-            # Desenha um retângulo vermelho para representar a área de colisão, com uma borda de 1 pixel
-            pygame.draw.rect(screen, (255, 0, 0), object, 2) 
+        # número das tiles (inteiros) usados para escolher imagens consistentemente
+        tile_number_right = math.floor(scroll_x / screen_width)
+        tile_number_left = tile_number_right - 1
+
+        def choose_image_for(tile_number: int) -> int:
+            if tile_number in self.tile_image_map:
+                return self.tile_image_map[tile_number]
+            choices = list(range(len(scaled_images)))
+            if self.last_chosen_index in choices and len(choices) > 1:
+                choices.remove(self.last_chosen_index)
+            choice = random.choice(choices)
+            self.tile_image_map[tile_number] = choice
+            self.last_chosen_index = choice
+            # limpeza simples: manter só janelas recentes (ex.: 10 tiles)
+            keys = sorted(self.tile_image_map.keys())
+            while len(keys) > 10:
+                del self.tile_image_map[keys.pop(0)]
+            return choice
+
+        left_img = scaled_images[choose_image_for(tile_number_left)]
+        right_img = scaled_images[choose_image_for(tile_number_right)]
+
+        screen.blit(left_img, (left_x + self.x_correction, scroll_y))
+        screen.blit(right_img, (right_x + self.x_correction, scroll_y))
+
+        for obj in self.colision_rects:
+            pygame.draw.rect(screen, (255, 0, 0), obj, 2)
 
     def check_collision(self, robot_rect: pygame.rect) -> bool:
         """Detecta se o robot está colidindo com algum rect do mapa
