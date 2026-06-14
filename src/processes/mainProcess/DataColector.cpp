@@ -2,8 +2,6 @@
 
 #include <unistd.h>
 
-#include <iostream>
-
 #include "utils/coord_buffer.hpp"
 
 void updateHistory(std::vector<CoordData>& history, const CoordData& new_item) {
@@ -41,9 +39,9 @@ void saveDataDB(const CoordData& item, float confidence) {
     formatted.coord[1] = item.coord[1];
     formatted.confidence = confidence;
 
-    std::cout << "[Coletor de Dados] Saving to DB: (" << formatted.coord[0]
-              << ", " << formatted.coord[1] << ") with confidence "
-              << formatted.confidence << std::endl;
+    // printf(
+    //     "[Coletor de Dados] Salvando na database: (%.2f, %.2f) com confiança %.2f\n",
+    //     formatted.coord[0], formatted.coord[1], formatted.confidence);
 }
 
 void saveDataTopic(const CoordData& item, float confidence) {
@@ -54,9 +52,9 @@ void saveDataTopic(const CoordData& item, float confidence) {
     formatted.coord[1] = item.coord[1];
     formatted.confidence = confidence;
 
-    std::cout << "[Coletor de Dados] Publishing to Topic: ("
-              << formatted.coord[0] << ", " << formatted.coord[1]
-              << ") with confidence " << confidence << std::endl;
+    // printf(
+    //     "[Coletor de Dados] Publicando no Tópico: (%.2f, %.2f) com confiança %.2f\n",
+    //     formatted.coord[0], formatted.coord[1], formatted.confidence);
 }
 
 void dataColectorHandler(CoordBuffer& coord_buf) {

@@ -5,7 +5,7 @@
 #include <cstdlib>
 #include <iostream>
 
-#include "IPC/Channels.hpp"
+#include "IPC/IPCData.hpp"
 #include "processes/cameraInspection/CameraInspectionTask.hpp"
 #include "processes/mainProcess/MainProcessInit.hpp"
 #include "processes/navigationCommand/NavigationCommandTask.hpp"

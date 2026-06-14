@@ -4,7 +4,7 @@
 
 #include <iostream>
 
-const int TASK_PERIOD_MS = 20;
+const int T_MS = 20;
 const float METERS_PER_ENCODER_SIGNAL = 1;
 
 static bool i_encoder = false;
@@ -42,7 +42,7 @@ void distanceComputationHandler(std::binary_semaphore& x_was_sent,
 
     while (true) {
         // Definição do período da tarefa
-        next_wake += std::chrono::milliseconds(TASK_PERIOD_MS);
+        next_wake += std::chrono::milliseconds(T_MS);
         std::this_thread::sleep_until(next_wake);
 
         auto now = std::chrono::steady_clock::now();

@@ -5,15 +5,35 @@
 
 #include <iostream>
 
-#include "IPC/Channels.hpp"
+#include "IPC/IPCData.hpp"
 
-const int TASK_PERIOD_MS = 80;
+const int T_MS = 80;
 
-int velocityController(int reference, int feedback) {
-    int control_action;
-    // TODO (Pedro): implementar lógica do controlador assim que o sistema for
-    // modelado
-    return control_action;
+// Parâmetros do controlador PI
+const float Kp = 1; 
+const float Ki = 0.1;
+
+// TODO (Pedro): sintonizar controlador assim que tiver modelo da planta
+float velocityController(float reference, float feedback) {
+    static float integral = 0.0f;
+    const float T_S = T_MS / 1000.0f;
+    const float U_MAX = 100.0f;
+
+    float e = reference - feedback;
+    integral += e * T_S;
+
+    float u = Kp * e + Ki * integral;
+
+    // trata saturação do atuador e congela integrador quando saturado
+    if (u > U_MAX) {
+        u = U_MAX;
+        integral -= e * T_S;
+    } else if (u < -U_MAX) {
+        u = -U_MAX;
+        integral -= e * T_S;
+    }
+
+    return u;
 }
 
 void navigationControlHandler(std::binary_semaphore& vel_was_sent,
@@ -39,7 +59,7 @@ void navigationControlHandler(std::binary_semaphore& vel_was_sent,
     auto next_wake = std::chrono::steady_clock::now();
     while (true) {
         // Tarefa com período definido
-        next_wake += std::chrono::milliseconds(TASK_PERIOD_MS);
+        next_wake += std::chrono::milliseconds(T_MS);
         std::this_thread::sleep_until(next_wake);
 
         vel_is_needed
@@ -47,26 +67,32 @@ void navigationControlHandler(std::binary_semaphore& vel_was_sent,
                          // consumir informação mais atualizada possível
         vel_was_sent.acquire();
         VelData vel_data = std::get<VelData>(vel_buffer.consumer_latest());
-        int feedback_vel = vel_data.vel;
+        float feedback_vel = vel_data.vel;
 
+        // obtenção do setpoint por memória compartilhada com proteção por mutex
         pthread_mutex_lock(&navigation_info->setpoint_mtx);
         float setpoint = navigation_info->setpoint_vel;
+        printf("[Controle Navegação] Setpoint atual: %.2f\n",setpoint);
         pthread_mutex_unlock(&navigation_info->setpoint_mtx);
 
-        int control_action = velocityController(setpoint, feedback_vel);
+        // calcula esforço de controle de 0 a 100%
+        float control_effort = velocityController(setpoint, feedback_vel);
 
+        // TODO (Pedro): enviar control_effort por MQTT para processo de simulação
+
+        // envia velocidade atual para navCommand repassar para display
         pthread_mutex_lock(&navigation_info->feedback_mtx);
-        navigation_info->current_vel = static_cast<float>(feedback_vel);
+        navigation_info->current_vel = feedback_vel;
         pthread_mutex_unlock(&navigation_info->feedback_mtx);
 
-        auto now = std::chrono::steady_clock::now();
-        double latency_ms =
-            std::chrono::duration<double, std::milli>(now - vel_data.timestamp)
-                .count();
-        printf(
-            "[Controle Navegação] setpoint: %.2f | vel: %d | latência: %.3f "
-            "ms\n",
-            setpoint, feedback_vel, latency_ms);
+        // auto now = std::chrono::steady_clock::now();
+        // double latency_ms =
+        //     std::chrono::duration<double, std::milli>(now - vel_data.timestamp)
+        //         .count();
+        // printf(
+        //     "[Controle Navegação] setpoint: %.2f | vel: %.2f | latência: %.3f "
+        //     "ms\n",
+        //     setpoint, feedback_vel, latency_ms);
     }
 
     shmdt(navigation_info);

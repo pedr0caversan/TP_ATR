@@ -8,16 +8,20 @@
 #include <csignal>
 #include <thread>
 
-#include "IPC/Channels.hpp"
+#include "IPC/IPCData.hpp"
 #include "utils/coord_buffer.hpp"
 #include "utils/pos_buffer.hpp"
 
 const int SIMULATION_PERIOD_S = 1;
-const int TASK_PERIOD_MS = 100;
+// período da task em ms
+const int T_MS = 100;
 const float EMA_ALPHA =
     0.5;  // grau de sensibilidade do filtro EMA em relação a valores novos
 
 int i_lidar = 200;
+
+// DEBUG
+static int dbg_i = 0;
 
 void simulateLidarSensor(double t) {
     i_lidar = static_cast<int>(
@@ -69,9 +73,11 @@ void ceilingReconstructionHandler(std::binary_semaphore& x_was_sent,
     pid_t pid_nav_command = pids->pid_nav_command;
     pid_t pid_cam_inspection = pids->pid_camera;
     shmdt(pids);  // memória compartilhada desanexada
+    printf("[CeilingReconstruction] PIDs obtidos: navCmd=%d, camera=%d\n",
+           pid_nav_command, pid_cam_inspection);
 
     while (true) {
-        next_wake += std::chrono::milliseconds(TASK_PERIOD_MS);
+        next_wake += std::chrono::milliseconds(T_MS);
         std::this_thread::sleep_until(next_wake);
 
         x_is_needed.release();
@@ -84,7 +90,7 @@ void ceilingReconstructionHandler(std::binary_semaphore& x_was_sent,
         double latency_ms =
             std::chrono::duration<double, std::milli>(now - pos_data.timestamp)
                 .count();
-        printf("[Reconstrução do Teto] latência x: %.3f ms\n", latency_ms);
+        // printf("[Reconstrução do Teto] latência x: %.3f ms\n", latency_ms);
 
         double t = std::chrono::duration<double>(
                        std::chrono::steady_clock::now() - task_start)
@@ -98,7 +104,8 @@ void ceilingReconstructionHandler(std::binary_semaphore& x_was_sent,
         refined_data.coord[1] = filterValue(f_y, y_coord);
 
         // TODO (Pedro): implementar condicional de detecção de anomalia
-        bool anomaly_detected = false;
+        dbg_i++;
+        bool anomaly_detected = (dbg_i % 10 == 0);
         if (anomaly_detected) {
             kill(pid_nav_command, SIGUSR1);
             kill(pid_cam_inspection, SIGUSR1);

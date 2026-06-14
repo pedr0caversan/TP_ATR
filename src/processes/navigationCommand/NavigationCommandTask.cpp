@@ -7,10 +7,12 @@
 #include <cstdlib>
 #include <iostream>
 
-#include "IPC/Channels.hpp"
+#include "IPC/IPCData.hpp"
 
 static volatile sig_atomic_t anomaly_flag = 0;
 static void on_anomaly(int) { anomaly_flag = 1; }
+
+static int dbg_anomaly_count = 0;
 
 void navigationCommandHandler() {
     signal(SIGUSR1, on_anomaly);
@@ -42,7 +44,7 @@ void navigationCommandHandler() {
     shm->initialized = true;  // sinaliza que mutexes estão prontos
 
     while (true) {
-        float nova_vel = 0.0f;  // TODO (Pedro): receber do operador remoto
+        float nova_vel = 10;  // TODO (Pedro): receber do operador remoto
 
         pthread_mutex_lock(&shm->setpoint_mtx);
         shm->setpoint_vel = nova_vel;
@@ -50,6 +52,8 @@ void navigationCommandHandler() {
 
         if (anomaly_flag) {
             anomaly_flag = 0;
+            dbg_anomaly_count++;
+            printf("[NavCommand] Anomalia detectada. Total: %d\n", dbg_anomaly_count);
             // TODO (Pedro): reduzir setpoint de velocidade
         }
 

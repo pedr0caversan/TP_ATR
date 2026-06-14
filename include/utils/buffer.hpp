@@ -13,7 +13,7 @@ struct PosData {
 };
 
 struct VelData {
-        int vel;
+        float vel;
         std::chrono::steady_clock::time_point timestamp; // útil para debug
 };
 
