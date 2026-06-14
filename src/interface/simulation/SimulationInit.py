@@ -24,6 +24,7 @@ class Simulation:
         self.robot_group = pygame.sprite.Group()
         self.robot_group.add(self.robot)
         self.my_camera = Camera(self.tunnel, self.robot, self.screen)
+        self.FPS = 60
 
     def act_upon_pressed_keys(self) -> None:
         """Toma as ações necessárias a respeito das teclas pressionadas no teclado.
@@ -57,12 +58,13 @@ class Simulation:
         self.robot_group.draw(self.screen)
         self.robot_group.update()
 
-    def apply_gravity_to_robot(self) -> None:
-        """Aplica gravidade ao robot e garante que ele caia no chão corretamente"""
+    def move_robot(self) -> None:
+        """Movimenta o robô de acordo com a física da simulação, levando em consideração gravidade e dinâmica horizontal de movimento"""
         if not self.robot.is_colliding(self.tunnel):
             self.robot.apply_delta_gravity_effect(0.003, self.tunnel)
-            # TODO (Pedro): periodizar tempo da task para d_t fazer sentido e pegar esforço de controle por MQTT pra passar para a função abaixo
-            # self.robot.apply_horizontal_velocity_effect()
+            # TODO (Pedro): pegar esforço de controle por MQTT pra passar para a função abaixo
+            control_effort = 0.5
+            self.robot.apply_horizontal_velocity_effect(control_effort, 1/self.FPS)
         else:
             self.robot.correct_ground_intersection(self.tunnel)
         if self.robot.is_colliding(self.tunnel):
@@ -77,7 +79,7 @@ class Simulation:
 
             current_time = time.time()
 
-            self.apply_gravity_to_robot()
+            self.move_robot()
 
             self.act_upon_pressed_keys()
 
@@ -88,7 +90,7 @@ class Simulation:
 
             pygame.display.flip()
 
-            self.clock.tick(60)
+            self.clock.tick(self.FPS)
 
         pygame.quit()
 
