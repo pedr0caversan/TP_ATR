@@ -11,8 +11,37 @@
 #include "utils/coord_buffer.hpp"
 #include "utils/pos_buffer.hpp"
 #include "utils/vel_buffer.hpp"
+#include <mosquitto.h>
+
+#include <atomic>
+#include <string>
+
+struct mosquitto *mqtt_client_main = nullptr;
+
+extern std::atomic<bool> mqtt_i_encoder;
+
+void on_message_main_process(struct mosquitto *mosq, void *userdata, const struct mosquitto_message *message) {
+    std::string topic(message->topic);
+    std::string payload((char*)message->payload);
+    
+    // Se a mensagem for do encoder simulado, atualiza a variável atômica
+    if (topic == "atr/sim/encoder") {
+        mqtt_i_encoder.store(payload == "1" || payload == "true");
+    }
+}
 
 void mainProcessInit() {
+    mosquitto_lib_init();
+    mqtt_client_main = mosquitto_new("robo_main_process", true, NULL);
+
+    mosquitto_message_callback_set(mqtt_client_main, on_message_main_process);
+
+    mosquitto_connect(mqtt_client_main, "localhost", 1883, 60);
+
+    mosquitto_subscribe(mqtt_client_main, NULL, "atr/sim/encoder", 0);
+
+    mosquitto_loop_start(mqtt_client_main);
+
     CoordBuffer coord_buf;
     PosBuffer pos_buf;
     VelBuffer vel_buf;
@@ -36,4 +65,11 @@ void mainProcessInit() {
     t3.join();
     t4.join();
     t5.join();
+
+    if (mqtt_client_main) {
+        mosquitto_loop_stop(mqtt_client_main, true);
+        mosquitto_destroy(mqtt_client_main);
+    }
+    
+    mosquitto_lib_cleanup();
 }

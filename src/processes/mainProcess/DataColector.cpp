@@ -4,6 +4,20 @@
 
 #include "utils/coord_buffer.hpp"
 
+#include <mosquitto.h>
+
+extern struct mosquitto *mqtt_client_main;
+
+void saveDataTopic(const CoordData& item, float confidence) {
+    if (mqtt_client_main) {
+        std::string payload = "{\"x\": " + std::to_string(item.coord[0]) + 
+                              ", \"y\": " + std::to_string(item.coord[1]) + 
+                              ", \"confianca\": " + std::to_string(confidence) + "}";
+                              
+        mosquitto_publish(mqtt_client_main, NULL, "atr/telemetria/log", payload.length(), payload.c_str(), 0, false);
+    }
+}
+
 void updateHistory(std::vector<CoordData>& history, const CoordData& new_item) {
     history.push_back(new_item);
     if (history.size() > 50) {

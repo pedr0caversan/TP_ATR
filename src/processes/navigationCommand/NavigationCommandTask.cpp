@@ -9,10 +9,28 @@
 
 #include "IPC/IPCData.hpp"
 
+//#include <mosquitto.h>
+
 static volatile sig_atomic_t anomaly_flag = 0;
 static void on_anomaly(int) { anomaly_flag = 1; }
 
 static int dbg_anomaly_count = 0;
+
+/*
+void on_message_nav_cmd(struct mosquitto *mosq, void *userdata, const struct mosquitto_message *message) {
+    NavInfo* shm = (NavInfo*)userdata; // Recupera o ponteiro da memória compartilhada
+    std::string topic(message->topic);
+    std::string payload((char*)message->payload);
+
+    if (topic == "atr/cmd/velocidade") {
+        float nova_vel = std::stof(payload);
+        pthread_mutex_lock(&shm->setpoint_mtx);
+        shm->setpoint_vel = nova_vel; // Atualiza o setpoint
+        pthread_mutex_unlock(&shm->setpoint_mtx);
+        printf("[NavCommand] Recebido via MQTT -> Novo Setpoint: %.2f\n", nova_vel);
+    }
+}
+*/
 
 void navigationCommandHandler() {
     signal(SIGUSR1, on_anomaly);
@@ -43,6 +61,15 @@ void navigationCommandHandler() {
 
     shm->initialized = true;  // sinaliza que mutexes estão prontos
 
+    /*
+    mosquitto_lib_init();
+    struct mosquitto *mqtt_nav = mosquitto_new("robo_nav_cmd", true, shm); // Passa 'shm' como userdata
+    mosquitto_message_callback_set(mqtt_nav, on_message_nav_cmd);
+    mosquitto_connect(mqtt_nav, "localhost", 1883, 60);
+    mosquitto_subscribe(mqtt_nav, NULL, "atr/cmd/#", 0);
+    mosquitto_loop_start(mqtt_nav); // Roda em background
+    */
+
     while (true) {
         float nova_vel = 10;  // TODO (Pedro): receber do operador remoto
 
@@ -61,6 +88,10 @@ void navigationCommandHandler() {
         float current_vel = shm->current_vel;
         pthread_mutex_unlock(&shm->feedback_mtx);
 
+        /*std::string vel_str = std::to_string(current_vel);
+        mosquitto_publish(mqtt_nav, NULL, "atr/telemetria/velocidade", vel_str.length(), vel_str.c_str(), 0, false);
+        */
+        
         // TODO (Pedro): transmitir current_vel por MQTT
     }
 

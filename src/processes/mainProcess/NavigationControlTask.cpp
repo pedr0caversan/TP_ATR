@@ -7,6 +7,11 @@
 
 #include "IPC/IPCData.hpp"
 
+#include <mosquitto.h>
+#include <string>
+
+extern struct mosquitto *mqtt_client_main;
+
 const int T_MS = 80;
 
 // Parâmetros do controlador PI
@@ -79,7 +84,13 @@ void navigationControlHandler(std::binary_semaphore& vel_was_sent,
         float control_effort = velocityController(setpoint, feedback_vel);
 
         // TODO (Pedro): enviar control_effort por MQTT para processo de simulação
-
+        /*
+        if (mqtt_client_main != nullptr) {
+            std::string u_str = std::to_string(control_effort);
+            mosquitto_publish(mqtt_client_main, NULL, "atr/sim/esforco_controle", u_str.length(), u_str.c_str(), 0, false);
+        }
+        */
+        
         // envia velocidade atual para navCommand repassar para display
         pthread_mutex_lock(&navigation_info->feedback_mtx);
         navigation_info->current_vel = feedback_vel;

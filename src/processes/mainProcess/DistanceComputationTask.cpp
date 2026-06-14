@@ -4,12 +4,19 @@
 
 #include <iostream>
 
+#include <atomic>
+#include <chrono>
+#include <thread>
+
 const int T_MS = 20;
 const float METERS_PER_ENCODER_SIGNAL = 1;
 
-static bool i_encoder = false;
-static int call_count = 0;  // para simulação do encoder
+std::atomic<bool> mqtt_i_encoder{false};
 
+//static bool i_encoder = false;
+//static int call_count = 0;  // para simulação do encoder
+
+/*
 void simulateEncoder(double t) {
     call_count++;
 
@@ -26,6 +33,7 @@ void simulateEncoder(double t) {
         }
     }
 }
+*/
 
 void distanceComputationHandler(std::binary_semaphore& x_was_sent,
                                 std::binary_semaphore& x_is_needed,
@@ -34,8 +42,11 @@ void distanceComputationHandler(std::binary_semaphore& x_was_sent,
                                 PosBuffer& pos_buffer, VelBuffer& vel_buffer) {
     PosData pos_data = {0};
     VelData vel_data = {0};
-    bool previous_encoder_state =
-        i_encoder;  // Guarda a última leitura do encoder
+
+    // Guarda a última leitura do encoder                                
+    bool previous_encoder_state = mqtt_i_encoder.load();
+        //i_encoder;  
+
     auto task_start = std::chrono::steady_clock::now();
     auto prev_encoder_timestamp = task_start;
     auto next_wake = task_start;
@@ -46,33 +57,42 @@ void distanceComputationHandler(std::binary_semaphore& x_was_sent,
         std::this_thread::sleep_until(next_wake);
 
         auto now = std::chrono::steady_clock::now();
-        double t = std::chrono::duration<double>(now - task_start).count();
-        simulateEncoder(t);
-        bool current_state = i_encoder;
+
+        //double t = std::chrono::duration<double>(now - task_start).count();
+        //simulateEncoder(t);
+
+        bool current_state = mqtt_i_encoder.load();
 
         if (current_state != previous_encoder_state) {
             /*=================================
             AÇÕES CASO HAJA MUDANÇA DE ESTADO
             ===================================*/
 
-            pos_data.pos += 1;
+            pos_data.pos += mqtt_i_encoder.load();;
             previous_encoder_state = current_state;
 
             // Derivar a velocidade usando tempo real entre eventos
             double dt_s =
                 std::chrono::duration<double>(now - prev_encoder_timestamp)
                     .count();
-            double velocity = METERS_PER_ENCODER_SIGNAL / dt_s;
+            if (dt_s > 0) {
+                double velocity = METERS_PER_ENCODER_SIGNAL / dt_s;
+                vel_data.vel = velocity;   
+            }
+
             prev_encoder_timestamp = now;
-            vel_data.vel = velocity;
         }
+
         vel_data.timestamp = now;
         pos_data.timestamp = now;
+
         vel_buffer.producer(vel_data);
         pos_buffer.producer(pos_data);
+
         if (x_is_needed.try_acquire()) {
             x_was_sent.release();
         }
+        
         if (vel_is_needed.try_acquire()) {
             vel_was_sent.release();
         }
