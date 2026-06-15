@@ -1,6 +1,7 @@
 #pragma once
 
 #include <chrono>
+#include <fstream>
 #include <vector>
 
 #include "utils/coord_buffer.hpp"
@@ -17,7 +18,7 @@ CoordData getBufferData(CoordBuffer* buffer);
 
 float calcConfidence(const CoordData& item, std::vector<CoordData>& history);
 
-void saveDataDB(const CoordData& item, float confidence);
+void saveDataDisk(const CoordData& item, float confidence);
 
 void saveDataTopic(const CoordData& item, float confidence);
 
