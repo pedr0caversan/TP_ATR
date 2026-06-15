@@ -19,7 +19,7 @@ class Simulation:
         pygame.display.set_caption("Simulação")
         self.running = True
 
-        self.tunnel = Tunnel("./assets/")
+        self.tunnel = Tunnel("./tunnel/")
         self.robot = Robot()
         self.robot_group = pygame.sprite.Group()
         self.robot_group.add(self.robot)
@@ -28,12 +28,6 @@ class Simulation:
 
     def act_upon_pressed_keys(self) -> None:
         """Toma as ações necessárias a respeito das teclas pressionadas no teclado.
-
-        Permite a movimentação lateral, o pulo, o ataque e o heal. As ações necessárias - como mudanças de variável - para regular
-        as animações e atributos do player e inimigos são tomadas em cada bloco condicional de acordo com a necessidade.
-
-        Args:
-            current_time: tempo atual fornecido pela biblioteca time
         """
         keys = pygame.key.get_pressed()
 
@@ -46,6 +40,9 @@ class Simulation:
         if keys[pygame.K_RIGHT]:
             if not keys[pygame.K_LEFT]:
                 self.robot.update_position(self.robot.max_horizontal_speed, 0)
+
+        if not keys[pygame.K_LEFT] and not keys[pygame.K_RIGHT]:
+            self.robot.update_position(0, 0)
 
     def control_robot(self) -> None:
         """Atualiza as animações do robo e desenha elas na tela"""

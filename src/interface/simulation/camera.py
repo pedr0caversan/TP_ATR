@@ -24,6 +24,9 @@ class Camera():
     def follow_robot(self) -> None:
         """ Garante o posicionamento da câmera próximo ao robot, movendo a câmera sempre que o robot permanecer em posições específicas
         """
+        self.bounded_character.walked_distance(self.off_set_x)
+        self.bounded_character.ceiling_distance(self.bounded_tunnel, self.off_set_x)
+
         if (self.off_set_x > -4):
             self.bounded_character.x_limit_reached = True
         else:
@@ -33,7 +36,7 @@ class Camera():
             self.bounded_character.y_limit_reached = True
         else:
             self.bounded_character.y_limit_reached = False
-
+   
         if (self.bounded_character.rect.topleft[0] <= 400 and self.bounded_character.speed[0] < 0) and not(self.off_set_x > -4):
             self.off_set_map(self.speed, 0)
         elif (self.bounded_character.rect.topleft[0] >= 720 and self.bounded_character.speed[0] > 0):

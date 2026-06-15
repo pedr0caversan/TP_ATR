@@ -1,3 +1,4 @@
+import math
 import pygame
 import tunnel
 
@@ -21,12 +22,12 @@ class Robot(pygame.sprite.Sprite):
         self.gravity_ = 25000
         self.vertical_speed = 0
         self.horizontal_speed = 0
-        self.pos_x = 0
-        self.pos_y = 0
+        self.pos_x = 10
+        self.pos_y = 400
         self.width = 100 * 2  # Largura do sprite do robo
         self.height = 80 * 2  # Altura do sprite do robo
         self.rect_down = pygame.Rect(
-            self.pos_x + 20, self.pos_y + 100, self.width - 20, self.height - 100
+            self.pos_x + 20, self.pos_y + 100, self.width - 40, self.height - 100
         )
         self.rect_left = pygame.Rect(self.pos_x, self.pos_y + 50, 10, self.height - 100)
         self.rect = pygame.Rect(self.pos_x, self.pos_y, self.width, self.height)
@@ -36,6 +37,12 @@ class Robot(pygame.sprite.Sprite):
         self.delta_pos_y = 0
         self.x_limit_reached = False
         self.y_limit_reached = False
+
+        self.meter = 72 # 1 metro = 72 pixels
+
+        self.encoder_dist = 0
+        self.encoder = 0
+        self.lidar = 0
 
     # TODO: TERMINAR O DOCSTRING
     def __import_sprites(
@@ -77,13 +84,12 @@ class Robot(pygame.sprite.Sprite):
             self.direction = "right"
         if not (
             ((self.rect.topleft[0] <= 400) and self.direction == "left")
-            or ((self.rect.topleft[0] >= 720) and self.direction == "right")
-        ) or (self.x_limit_reached):
+            or ((self.rect.topleft[0] >= 720) and self.direction == "right")) or (self.x_limit_reached):
             self.pos_x += self.speed[0]
         if not self.y_limit_reached:
             self.pos_y += self.speed[1]
         self.rect.topleft = [self.pos_x, self.pos_y]
-        self.rect_down.topleft = [self.pos_x, self.pos_y + 100]
+        self.rect_down.topleft = [self.pos_x + 20, self.pos_y + 100]
         self.rect_left.topleft = [self.pos_x, self.pos_y + 50]
 
     def apply_delta_gravity_effect(self, delta_t: float, tunnel: tunnel) -> None:
@@ -144,6 +150,18 @@ class Robot(pygame.sprite.Sprite):
         if intersection_rect.height > 1:
             self.update_position(0, -intersection_rect.height + 1)
             print(f"Interseção corrigida: {intersection_rect.height} pixels ajustados.")
+
+    def walked_distance(self, offset_camera: int):
+        traveled_distance = self.pos_x - offset_camera
+        if math.fabs(traveled_distance - self.encoder_dist) >= self.meter:
+            self.encoder_dist = traveled_distance
+            self.encoder = 1 if self.encoder == 0 else 0
+
+    # TODO: IMPLEMENTAR RUÍDO DE MEDIÇÃO
+    def ceiling_distance(self, tunnel: tunnel, offset_camera: int):
+        distance = tunnel.return_distance_to_ceiling(self.rect, offset_camera)
+        if distance is not None:
+            self.lidar = distance / self.meter
 
     def is_colliding(self, tunnel: tunnel) -> bool:
         """Retorna True se o robo estiver colidindo com o solo
