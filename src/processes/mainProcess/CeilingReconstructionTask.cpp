@@ -12,20 +12,22 @@
 #include "utils/coord_buffer.hpp"
 #include "utils/pos_buffer.hpp"
 
-const int SIMULATION_PERIOD_S = 1;
+
+std::atomic<float> mqtt_i_lidar{0.0f};
+const int LIDAR_SIMULATION_T_S = 1;
 // período da task em ms
 const int T_MS = 100;
 const float EMA_ALPHA =
     0.5;  // grau de sensibilidade do filtro EMA em relação a valores novos
 
-int i_lidar = 200;
+float i_lidar = 200;
 
 // DEBUG
 static int dbg_i = 0;
 
 void simulateLidarSensor(double t) {
-    i_lidar = static_cast<int>(
-        200 + 100 * std::cos(2 * M_PI * SIMULATION_PERIOD_S * t));
+    i_lidar = (
+        200 + 100 * std::cos(2 * M_PI * LIDAR_SIMULATION_T_S * t));
 }
 
 // Filtro EMA (Exponential Moving Average) foi escolhido no lugar de SMA (Simple
@@ -76,6 +78,11 @@ void ceilingReconstructionHandler(std::binary_semaphore& x_was_sent,
     printf("[CeilingReconstruction] PIDs obtidos: navCmd=%d, camera=%d\n",
            pid_nav_command, pid_cam_inspection);
 
+
+    // ============================================================
+    // loop da task
+    //============================================================
+
     while (true) {
         next_wake += std::chrono::milliseconds(T_MS);
         std::this_thread::sleep_until(next_wake);
@@ -95,9 +102,8 @@ void ceilingReconstructionHandler(std::binary_semaphore& x_was_sent,
         double t = std::chrono::duration<double>(
                        std::chrono::steady_clock::now() - task_start)
                        .count();
-        simulateLidarSensor(t);  // simulação para testes
-        int y_coord =
-            i_lidar;  // aqui deve ser lido o valor percebido pelo lidar
+        // simulateLidarSensor(t);  // simulação para testes
+        float y_coord = mqtt_i_lidar.load();
 
         CoordData refined_data = {std::chrono::steady_clock::now(), {0, 0}};
         refined_data.coord[0] = filterValue(f_x, x_coord);

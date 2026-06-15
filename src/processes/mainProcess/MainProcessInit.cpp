@@ -1,7 +1,11 @@
 #include "processes/mainProcess/MainProcessInit.hpp"
 
+#include <mosquitto.h>
+
+#include <atomic>
 #include <cstdlib>
 #include <semaphore>
+#include <string>
 #include <thread>
 
 #include "processes/mainProcess/CeilingReconstructionTask.hpp"
@@ -11,22 +15,23 @@
 #include "utils/coord_buffer.hpp"
 #include "utils/pos_buffer.hpp"
 #include "utils/vel_buffer.hpp"
-#include <mosquitto.h>
 
-#include <atomic>
-#include <string>
-
-struct mosquitto *mqtt_client_main = nullptr;
+struct mosquitto* mqtt_client_main = nullptr;
 
 extern std::atomic<bool> mqtt_i_encoder;
+extern std::atomic<float> mqtt_i_lidar;
 
-void on_message_main_process(struct mosquitto *mosq, void *userdata, const struct mosquitto_message *message) {
+void on_message_main_process(struct mosquitto* mosq, void* userdata,
+                             const struct mosquitto_message* message) {
     std::string topic(message->topic);
     std::string payload((char*)message->payload);
-    
+
     // Se a mensagem for do encoder simulado, atualiza a variável atômica
     if (topic == "atr/sim/encoder") {
         mqtt_i_encoder.store(payload == "1" || payload == "true");
+    }
+    if (topic == "atr/sim/lidar") {
+        mqtt_i_lidar.store(std::stof(payload));
     }
 }
 
@@ -39,6 +44,8 @@ void mainProcessInit() {
     mosquitto_connect(mqtt_client_main, "localhost", 1883, 60);
 
     mosquitto_subscribe(mqtt_client_main, NULL, "atr/sim/encoder", 0);
+
+    mosquitto_subscribe(mqtt_client_main, NULL, "atr/sim/lidar", 0);
 
     mosquitto_loop_start(mqtt_client_main);
 
@@ -70,6 +77,6 @@ void mainProcessInit() {
         mosquitto_loop_stop(mqtt_client_main, true);
         mosquitto_destroy(mqtt_client_main);
     }
-    
+
     mosquitto_lib_cleanup();
 }

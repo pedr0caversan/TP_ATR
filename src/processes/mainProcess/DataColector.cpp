@@ -58,18 +58,18 @@ void saveDataDB(const CoordData& item, float confidence) {
     //     formatted.coord[0], formatted.coord[1], formatted.confidence);
 }
 
-void saveDataTopic(const CoordData& item, float confidence) {
-    // Implementation for saving data to topic
-    FormatedData formatted;
-    formatted.timestamp = item.timestamp;
-    formatted.coord[0] = item.coord[0];
-    formatted.coord[1] = item.coord[1];
-    formatted.confidence = confidence;
+// void saveDataTopic(const CoordData& item, float confidence) {
+//     // Implementation for saving data to topic
+//     FormatedData formatted;
+//     formatted.timestamp = item.timestamp;
+//     formatted.coord[0] = item.coord[0];
+//     formatted.coord[1] = item.coord[1];
+//     formatted.confidence = confidence;
 
-    // printf(
-    //     "[Coletor de Dados] Publicando no Tópico: (%.2f, %.2f) com confiança %.2f\n",
-    //     formatted.coord[0], formatted.coord[1], formatted.confidence);
-}
+//     printf(
+//         "[Coletor de Dados] Publicando no Tópico: (%.2f, %.2f) com confiança %.2f\n",
+//         formatted.coord[0], formatted.coord[1], formatted.confidence);
+// }
 
 void dataColectorHandler(CoordBuffer& coord_buf) {
     static std::vector<CoordData> history;

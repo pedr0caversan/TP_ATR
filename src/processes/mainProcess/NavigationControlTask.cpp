@@ -25,20 +25,22 @@ float velocityController(float reference, float feedback) {
     const float U_MAX = 100.0f;
 
     float e = reference - feedback;
-    integral += e * T_S;
+    // integral += e * T_S;
 
-    float u = Kp * e + Ki * integral;
+    // float u = Kp * e + Ki * integral;
 
-    // trata saturação do atuador e congela integrador quando saturado
-    if (u > U_MAX) {
-        u = U_MAX;
-        integral -= e * T_S;
-    } else if (u < -U_MAX) {
-        u = -U_MAX;
-        integral -= e * T_S;
-    }
+    // // trata saturação do atuador e congela integrador quando saturado
+    // if (u > U_MAX) {
+    //     u = U_MAX;
+    //     integral -= e * T_S;
+    // } else if (u < -U_MAX) {
+    //     u = -U_MAX;
+    //     integral -= e * T_S;
+    // }
 
-    return u;
+    // TODO (Pedro): reativar controlador
+    // para testes iniciais, a dinâmica da planta vai ser deixada livre, sem controle
+    return e;
 }
 
 void navigationControlHandler(std::binary_semaphore& vel_was_sent,
@@ -83,13 +85,13 @@ void navigationControlHandler(std::binary_semaphore& vel_was_sent,
         // calcula esforço de controle de 0 a 100%
         float control_effort = velocityController(setpoint, feedback_vel);
 
-        // TODO (Pedro): enviar control_effort por MQTT para processo de simulação
-        /*
+
+        // envio do esforço de controle para a simulação
         if (mqtt_client_main != nullptr) {
             std::string u_str = std::to_string(control_effort);
             mosquitto_publish(mqtt_client_main, NULL, "atr/sim/esforco_controle", u_str.length(), u_str.c_str(), 0, false);
         }
-        */
+        
         
         // envia velocidade atual para navCommand repassar para display
         pthread_mutex_lock(&navigation_info->feedback_mtx);
