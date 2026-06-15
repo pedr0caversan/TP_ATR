@@ -1,22 +1,11 @@
 #include "processes/mainProcess/DataColector.hpp"
 
+#include <mosquitto.h>
 #include <unistd.h>
 
 #include "utils/coord_buffer.hpp"
 
-#include <mosquitto.h>
-
-extern struct mosquitto *mqtt_client_main;
-
-void saveDataTopic(const CoordData& item, float confidence) {
-    if (mqtt_client_main) {
-        std::string payload = "{\"x\": " + std::to_string(item.coord[0]) + 
-                              ", \"y\": " + std::to_string(item.coord[1]) + 
-                              ", \"confianca\": " + std::to_string(confidence) + "}";
-                              
-        mosquitto_publish(mqtt_client_main, NULL, "atr/telemetria/log", payload.length(), payload.c_str(), 0, false);
-    }
-}
+extern struct mosquitto* mqtt_client_main;
 
 void updateHistory(std::vector<CoordData>& history, const CoordData& new_item) {
     history.push_back(new_item);
@@ -45,30 +34,46 @@ float calcConfidence(const CoordData& item, std::vector<CoordData>& history) {
     return conf;
 }
 
-void saveDataDB(const CoordData& item, float confidence) {
-    // Implementation for saving data to database
-    FormatedData formatted;
-    formatted.timestamp = item.timestamp;
-    formatted.coord[0] = item.coord[0];
-    formatted.coord[1] = item.coord[1];
-    formatted.confidence = confidence;
+void saveDataDisk(const CoordData& item, float confidence) {
+    const std::string filename = "data_log.csv";
+    bool write_header = false;
 
-    // printf(
-    //     "[Coletor de Dados] Salvando na database: (%.2f, %.2f) com confiança %.2f\n",
-    //     formatted.coord[0], formatted.coord[1], formatted.confidence);
+    {
+        std::ifstream check(filename);
+        if (!check.is_open() ||
+            check.peek() == std::ifstream::traits_type::eof()) {
+            write_header = true;
+        }
+    }
+
+    std::ofstream file(filename, std::ios::app);
+    if (!file.is_open()) {
+        return;
+    }
+
+    if (write_header) {
+        file << "timestamp,coord_x,coord_y,confidence\n";
+    }
+
+    const auto timestamp_ms =
+        std::chrono::duration_cast<std::chrono::milliseconds>(
+            item.timestamp.time_since_epoch())
+            .count();
+
+    file << timestamp_ms << ',' << item.coord[0] << ',' << item.coord[1] << ','
+         << confidence << '\n';
 }
 
 void saveDataTopic(const CoordData& item, float confidence) {
-    // Implementation for saving data to topic
-    FormatedData formatted;
-    formatted.timestamp = item.timestamp;
-    formatted.coord[0] = item.coord[0];
-    formatted.coord[1] = item.coord[1];
-    formatted.confidence = confidence;
+    if (mqtt_client_main) {
+        std::string payload = "{\"x\": " + std::to_string(item.coord[0]) +
+                              ", \"y\": " + std::to_string(item.coord[1]) +
+                              ", \"confianca\": " + std::to_string(confidence) +
+                              "}";
 
-    // printf(
-    //     "[Coletor de Dados] Publicando no Tópico: (%.2f, %.2f) com confiança %.2f\n",
-    //     formatted.coord[0], formatted.coord[1], formatted.confidence);
+        mosquitto_publish(mqtt_client_main, NULL, "atr/telemetria/log",
+                          payload.length(), payload.c_str(), 0, false);
+    }
 }
 
 void dataColectorHandler(CoordBuffer& coord_buf) {
@@ -76,7 +81,7 @@ void dataColectorHandler(CoordBuffer& coord_buf) {
     while (true) {
         CoordData item = getBufferData(&coord_buf);
         float confidence = calcConfidence(item, history);
-        saveDataDB(item, confidence);
+        saveDataDisk(item, confidence);
         saveDataTopic(item, confidence);
         updateHistory(history, item);
     }
