@@ -200,3 +200,7 @@ class Robot(pygame.sprite.Sprite):
         pygame.draw.rect(screen, green, self.rect, 1)
         pygame.draw.rect(screen, black, self.rect_down, 1)
         pygame.draw.rect(screen, white, self.rect_left, 1)
+
+        altura = self.lidar * self.meter
+        pygame.draw.line(screen, (255,255,255), (self.pos_x+(self.width/2),self.pos_y-altura), (self.pos_x+(self.width/2), self.pos_y),1)
+

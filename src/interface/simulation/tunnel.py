@@ -183,14 +183,14 @@ class Tunnel:
         """
         for object in self.colision_by_image[self.left_tile]:
             # Verifica se o robô está horizontalmente alinhado com o objeto
-            if (object.x <= robot_rect.x <= object.x + object.width) and (object.y < robot_rect.y):
+            if (object.x <= (robot_rect.x+(robot_rect.width/2)) <= object.x + object.width) and (object.y < robot_rect.y):
                 # Distância do topo do robô até o topo do objeto
                 distance = robot_rect.y - (object.y + object.height)
                 return distance
         
         for object in self.colision_by_image[self.right_tile]:
             # Verifica se o robô está horizontalmente alinhado com o objeto
-            if (object.x <= robot_rect.x <= object.x + object.width) and (object.y < robot_rect.y):
+            if (object.x <= (robot_rect.x+(robot_rect.width/2)) <= object.x + object.width) and (object.y < robot_rect.y):
                 # Distância do topo do robô até o topo do objeto
                 distance = robot_rect.y - (object.y + object.height)
                 return distance
