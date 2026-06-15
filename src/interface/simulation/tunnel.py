@@ -23,6 +23,7 @@ class Tunnel:
         self.tile_image_map = {} # mapeia tile_number -> index da imagem em self.image_layers
         self.last_chosen_index = None
         self.scaled_cache = {} # cache: (w,h) -> [scaled_surfaces...]
+        self.old_off_set_x = 0
 
         self.left_tile = 0
         self.right_tile = 0
@@ -102,22 +103,46 @@ class Tunnel:
         tile_number_left = tile_number_right - 1
 
         def choose_image_for(tile_number: int) -> int:
+            restarting = False
+
             if tile_number in self.tile_image_map:
+                self.last_chosen_index = self.tile_image_map[tile_number]
                 return self.tile_image_map[tile_number]
+            
             choices = list(range(len(scaled_images)))
             if self.last_chosen_index in choices and len(choices) > 1:
                 choices.remove(self.last_chosen_index)
             choice = random.choice(choices)
+
+            chaves = sorted(self.tile_image_map.keys()) if len(self.tile_image_map) > 0 else [-1]
+            if tile_number < chaves[0]:
+                restarting = True
+
             self.tile_image_map[tile_number] = choice
             self.last_chosen_index = choice
+            
             # limpeza simples: manter só janelas recentes (ex.: 10 tiles)
             keys = sorted(self.tile_image_map.keys())
+            
             while len(keys) > 10:
-                del self.tile_image_map[keys.pop(0)]
+                if restarting:
+                    del self.tile_image_map[keys.pop()]
+                else:
+                    del self.tile_image_map[keys.pop(0)]
             return choice
+        
+        # Se carro estiver movendo para direita, atualiza left tile primeiro
+        if self.old_off_set_x - off_set_x >= 0:
+            self.old_off_set_x = off_set_x
+            left_tile_selected = choose_image_for(tile_number_left)
+            right_tile_selected = choose_image_for(tile_number_right)
+        # Se carro estiver movendo para esquerda, atualiza right tile primeiro
+        elif self.old_off_set_x - off_set_x < 0:
+            self.old_off_set_x = off_set_x
+            right_tile_selected = choose_image_for(tile_number_right)
+            left_tile_selected = choose_image_for(tile_number_left)
 
-        left_tile_selected = choose_image_for(tile_number_left)
-        right_tile_selected = choose_image_for(tile_number_right)
+        # print(f"Mapa de tiles: {self.tile_image_map}, Last choice: {self.last_chosen_index}, Left tile: {tile_number_left}")
         self.left_tile = left_tile_selected
         self.right_tile = right_tile_selected
 
