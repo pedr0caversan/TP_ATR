@@ -1,8 +1,7 @@
-# Na pasta em que esse arquivo está ficarão os publishers e subscribers (sensores, atuadores, etc)
-# Só criei esse arquivo para possibilitar subir a pasta pro remoto
 
 import paho.mqtt.client as mqtt
 import json
+
 
 class MQTTHandler:
     def __init__(self, client_id, broker="localhost", port=1883):
@@ -11,11 +10,11 @@ class MQTTHandler:
         self.client.on_message = self.on_message
         self.broker = broker
         self.port = port
-        self.callbacks = {} # Guarda as funções que vão tratar cada tópico
+        self.callbacks = {}  # Guarda as funções que vão tratar cada tópico
 
     def connect_and_start(self):
         self.client.connect(self.broker, self.port, 60)
-        self.client.loop_start() # Roda em background, não trava a interface
+        self.client.loop_start()  # Roda em background, não trava a interface
 
     def on_connect(self, client, userdata, flags, rc):
         print(f"[{client._client_id.decode()}] Conectado ao MQTT. Status: {rc}")
@@ -32,7 +31,10 @@ class MQTTHandler:
         self.callbacks[topic] = func
 
     def publish_data(self, topic, payload):
-        self.client.publish(topic, str(payload))
+        self.client.publish(
+            topic,
+            json.dumps(payload) if isinstance(payload, (dict, list)) else str(payload),
+        )
 
     def stop(self):
         self.client.loop_stop()
