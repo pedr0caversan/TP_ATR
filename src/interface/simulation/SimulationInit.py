@@ -1,1 +1,98 @@
-# Esse arquivo spawna as threads de simulação e só atualiza a interface
+import pygame
+import time
+
+from tunnel import Tunnel
+from robot import Robot
+from camera import Camera
+
+
+class Simulation:
+    def __init__(self) -> None:
+        self.clock = pygame.time.Clock()
+
+        pygame.font.init()
+
+        # Game Screen
+        screen_width = 1280
+        screen_height = 720
+        self.screen = pygame.display.set_mode((screen_width, screen_height))
+        pygame.display.set_caption("Simulação")
+        self.running = True
+
+        self.tunnel = Tunnel("./tunnel/")
+        self.robot = Robot()
+        self.robot_group = pygame.sprite.Group()
+        self.robot_group.add(self.robot)
+        self.my_camera = Camera(self.tunnel, self.robot, self.screen)
+        self.FPS = 60
+
+    def act_upon_pressed_keys(self) -> None:
+        """Toma as ações necessárias a respeito das teclas pressionadas no teclado.
+        """
+        keys = pygame.key.get_pressed()
+
+        if keys[pygame.K_LEFT]:
+            if not keys[pygame.K_RIGHT] and not self.robot.is_left_colliding(
+                self.tunnel
+            ):
+                self.robot.update_position(-self.robot.max_horizontal_speed, 0)
+
+        if keys[pygame.K_RIGHT]:
+            if not keys[pygame.K_LEFT]:
+                self.robot.update_position(self.robot.max_horizontal_speed, 0)
+
+        if not keys[pygame.K_LEFT] and not keys[pygame.K_RIGHT]:
+            self.robot.update_position(0, 0)
+
+    def control_robot(self) -> None:
+        """Atualiza as animações do robo e desenha elas na tela"""
+        self.my_camera.follow_robot()
+
+        # atualiza todas animações
+        self.robot.draw_collision_rect(self.screen)
+        self.robot.animate()
+
+        self.robot_group.draw(self.screen)
+        self.robot_group.update()
+
+    def move_robot(self) -> None:
+        """Movimenta o robô de acordo com a física da simulação, levando em consideração gravidade e dinâmica horizontal de movimento"""
+        if not self.robot.is_colliding(self.tunnel):
+            self.robot.apply_delta_gravity_effect(0.003, self.tunnel)
+            # TODO (Pedro): pegar esforço de controle por MQTT pra passar para a função abaixo
+            control_effort = 0.5
+            self.robot.apply_horizontal_velocity_effect(control_effort, 1/self.FPS)
+        else:
+            self.robot.correct_ground_intersection(self.tunnel)
+        if self.robot.is_colliding(self.tunnel):
+            self.robot.vertical_speed = 0
+
+    def simulation_run(self):
+
+        while self.running:
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    self.running = False
+
+            current_time = time.time()
+
+            self.move_robot()
+
+            self.act_upon_pressed_keys()
+
+            self.control_robot()
+
+            self.robot_group.draw(self.screen)
+            self.robot_group.update()
+
+            pygame.display.flip()
+
+            self.clock.tick(self.FPS)
+
+        pygame.quit()
+
+
+# Apenas existe para ser possivel rodar a Game Sem utilizar o menu
+if __name__ == "__main__":
+    my_game = Simulation()
+    my_game.simulation_run()
