@@ -87,9 +87,11 @@ int main() {
     }
 
     if (pid_simulation == 0) {
-        char* args[] = {(char*)"python3",
-                        (char*)"../src/interface/simulation/SimulationInit.py",
-                        nullptr};
+        if (chdir("../src/interface/simulation") != 0) {
+            perror("chdir simulation");
+            exit(EXIT_FAILURE);
+        }
+        char* args[] = {(char*)"python3", (char*)"SimulationInit.py", nullptr};
         execvp("python3", args);
         std::cerr << "Erro no execvp da simulação\n";
         exit(EXIT_FAILURE);
