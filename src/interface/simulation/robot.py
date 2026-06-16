@@ -165,7 +165,7 @@ class Robot(pygame.sprite.Sprite):
         
         traveled_distance = self.pos_x - offset_camera
         print("MÓDULO: %.2f metros percorridos" % (traveled_distance -self.x_coordinate))
-        if math.fabs(traveled_distance - self.x_coordinate) >= self.meter:
+        if math.fabs(traveled_distance - self.x_coordinate) >= self.pixels_per_meter:
             self.x_coordinate = traveled_distance
             self.encoder = 1 if self.encoder == 0 else 0
             self._encoder_print_counter += 1
