@@ -104,6 +104,8 @@ void ceilingReconstructionHandler(std::binary_semaphore& x_was_sent,
                        .count();
         // simulateLidarSensor(t);  // simulação para testes
         float y_coord = mqtt_i_lidar.load();
+        printf("[Reconstrução do Teto] x: %d, y: %.2f, latência: %.3f ms\n",
+               x_coord, y_coord, latency_ms);
 
         CoordData refined_data = {std::chrono::steady_clock::now(), {0, 0}};
         refined_data.coord[0] = filterValue(f_x, x_coord);

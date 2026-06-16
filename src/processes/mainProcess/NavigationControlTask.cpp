@@ -76,10 +76,12 @@ void navigationControlHandler(std::binary_semaphore& vel_was_sent,
         VelData vel_data = std::get<VelData>(vel_buffer.consumer_latest());
         float feedback_vel = vel_data.vel;
 
+        printf("[Controle Navegação] Velocidade atual: %.2f\n", feedback_vel);
+
         // obtenção do setpoint por memória compartilhada com proteção por mutex
         pthread_mutex_lock(&navigation_info->setpoint_mtx);
         float setpoint = navigation_info->setpoint_vel;
-        printf("[Controle Navegação] Setpoint atual: %.2f\n",setpoint);
+        // printf("[Controle Navegação] Setpoint atual: %.2f\n",setpoint);
         pthread_mutex_unlock(&navigation_info->setpoint_mtx);
 
         // calcula esforço de controle de 0 a 100%

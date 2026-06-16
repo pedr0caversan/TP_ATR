@@ -1,6 +1,7 @@
 import pygame
 import time
 
+from MQTTInterface import MQTTInterface
 from tunnel import Tunnel
 from robot import Robot
 from camera import Camera
@@ -26,9 +27,20 @@ class Simulation:
         self.my_camera = Camera(self.tunnel, self.robot, self.screen)
         self.FPS = 60
 
+        # MQTT
+        self.mqtt = MQTTInterface(actuator_callback=self.update_control_effort)
+        self.mqtt.connect()
+        self.control_effort = 0.0
+
+    def update_control_effort(self, data: float) -> None:
+        self.control_effort = data
+
+    def update_sensor_data(self) -> None:
+        self.robot.update_encoder(self.my_camera.off_set_x)
+        self.robot.update_lidar(self.tunnel, self.my_camera.off_set_x)
+
     def act_upon_pressed_keys(self) -> None:
-        """Toma as ações necessárias a respeito das teclas pressionadas no teclado.
-        """
+        """Toma as ações necessárias a respeito das teclas pressionadas no teclado."""
         keys = pygame.key.get_pressed()
 
         if keys[pygame.K_LEFT]:
@@ -59,15 +71,17 @@ class Simulation:
         """Movimenta o robô de acordo com a física da simulação, levando em consideração gravidade e dinâmica horizontal de movimento"""
         if not self.robot.is_colliding(self.tunnel):
             self.robot.apply_delta_gravity_effect(0.003, self.tunnel)
-            # TODO (Pedro): pegar esforço de controle por MQTT pra passar para a função abaixo
-            control_effort = 0.5
-            self.robot.apply_horizontal_velocity_effect(control_effort, 1/self.FPS)
+
+            self.robot.apply_horizontal_velocity_effect(
+                self.control_effort, 1 / self.FPS
+            )
         else:
             self.robot.correct_ground_intersection(self.tunnel)
         if self.robot.is_colliding(self.tunnel):
             self.robot.vertical_speed = 0
 
     def simulation_run(self):
+        
 
         while self.running:
             for event in pygame.event.get():
@@ -82,8 +96,9 @@ class Simulation:
 
             self.control_robot()
 
-            self.robot_group.draw(self.screen)
-            self.robot_group.update()
+            self.update_sensor_data()
+
+            self.mqtt.publish_sensor_data(self.robot.encoder, self.robot.lidar)
 
             pygame.display.flip()
 

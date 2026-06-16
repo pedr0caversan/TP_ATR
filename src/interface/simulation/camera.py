@@ -24,9 +24,6 @@ class Camera():
     def follow_robot(self) -> None:
         """ Garante o posicionamento da câmera próximo ao robot, movendo a câmera sempre que o robot permanecer em posições específicas
         """
-        self.bounded_character.walked_distance(self.off_set_x)
-        self.bounded_character.ceiling_distance(self.bounded_tunnel, self.off_set_x)
-
         if (self.off_set_x > -4):
             self.bounded_character.x_limit_reached = True
         else:

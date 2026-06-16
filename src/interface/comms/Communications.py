@@ -1,11 +1,11 @@
-
 import paho.mqtt.client as mqtt
+from paho.mqtt.client import CallbackAPIVersion
 import json
 
 
 class MQTTHandler:
     def __init__(self, client_id, broker="localhost", port=1883):
-        self.client = mqtt.Client(client_id)
+        self.client = mqtt.Client(CallbackAPIVersion.VERSION1, client_id)
         self.client.on_connect = self.on_connect
         self.client.on_message = self.on_message
         self.broker = broker

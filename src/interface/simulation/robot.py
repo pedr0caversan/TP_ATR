@@ -43,6 +43,7 @@ class Robot(pygame.sprite.Sprite):
         self.encoder_dist = 0
         self.encoder = 0
         self.lidar = 0
+        self._encoder_print_counter = 0
 
     # TODO: TERMINAR O DOCSTRING
     def __import_sprites(
@@ -151,14 +152,19 @@ class Robot(pygame.sprite.Sprite):
             self.update_position(0, -intersection_rect.height + 1)
             print(f"Interseção corrigida: {intersection_rect.height} pixels ajustados.")
 
-    def walked_distance(self, offset_camera: int):
+    def update_encoder(self, offset_camera: int):
         traveled_distance = self.pos_x - offset_camera
+        print("MÓDULO: %.2f metros percorridos" % (traveled_distance -self.encoder_dist))
         if math.fabs(traveled_distance - self.encoder_dist) >= self.meter:
             self.encoder_dist = traveled_distance
             self.encoder = 1 if self.encoder == 0 else 0
+            self._encoder_print_counter += 1
+            if self._encoder_print_counter >= 15:
+                self._encoder_print_counter = 0
+                print(f"Encoder atualizado: {self.encoder} (distância percorrida: {traveled_distance} pixels)")
 
     # TODO: IMPLEMENTAR RUÍDO DE MEDIÇÃO
-    def ceiling_distance(self, tunnel: tunnel, offset_camera: int):
+    def update_lidar(self, tunnel: tunnel, offset_camera: int):
         distance = tunnel.return_distance_to_ceiling(self.rect, offset_camera)
         if distance is not None:
             self.lidar = distance / self.meter
