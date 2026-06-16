@@ -33,11 +33,13 @@ class Robot(pygame.sprite.Sprite):
         # Default Position and movement (scaled)
         self.gravity_ = 25000
         self.vertical_speed = 0
-        self.horizontal_speed = 0
+
+        self.horizontal_speed_m_s = 0
         self.pos_x = int(10 * self.scale_x)
         self.pos_y = int(400 * self.scale_y)
         self.width = int(100 * 2 * ((self.scale_x + self.scale_y) / 2.0))  # Largura do sprite do robo
         self.height = int(80 * 2 * ((self.scale_x + self.scale_y) / 2.0))  # Altura do sprite do robo
+
         self.rect_down = pygame.Rect(
             self.pos_x + int(20 * self.scale_x), self.pos_y + int(100 * self.scale_y), self.width - int(40 * self.scale_x), self.height - int(100 * self.scale_y)
         )
@@ -52,7 +54,8 @@ class Robot(pygame.sprite.Sprite):
 
         self.pixels_per_meter = int(72 * ((self.scale_x + self.scale_y) / 2.0))
 
-        self.encoder_dist = 0
+        self.x_coord_m = 0
+        self.last_x_coord_m = 0
         self.encoder = False
         self.lidar = 0
         self._encoder_print_counter = 0
@@ -90,7 +93,7 @@ class Robot(pygame.sprite.Sprite):
         """Muda a posição do Rect do robô e a posição dos seu rects direcionais
 
         Args:
-            new_pos_x: valor a ser somado à posição da direção horizontal
+            new_pos_x: valor em pixels a ser somado à posição da direção horizontal
             new_pos_y: o mesmo, porém à direção vertical
         """
         self.speed[0] = new_pos_x
@@ -143,22 +146,22 @@ class Robot(pygame.sprite.Sprite):
 
         # Parâmetros físicos
         # a_max: aceleração com atuador saturado (pixels/s²)
-        # TODO (Pedro, Davi): Decidir quantos pixels correspondem a 1 metro na simulação
         # TODO (Pedro): tunar os parâmetros pro movimento do robô ficar natural
         # k_atrito: coeficiente de atrito de rolamento (1/s), derivado de a_max e v_max
         # obs: Tau = v_max/a_max = 1/k_atrito
-        a_max = 24.0
+        a_max = 5.0
         k_atrito = (
             a_max / self.max_horizontal_speed
         )  # garante v_ss = max_horizontal_speed
 
         # motor menos atrito
-        accel = u * a_max - k_atrito * self.horizontal_speed
-        self.horizontal_speed += accel * delta_t
+        accel = u * a_max - k_atrito * self.horizontal_speed_m_s
+        self.horizontal_speed_m_s += accel * delta_t
 
         # Atualiza posição com a velocidade calculada
-        delta_x = self.horizontal_speed * delta_t
-        self.update_position(delta_x, 0)
+        delta_x = self.horizontal_speed_m_s * delta_t
+        # print("delta_x (m): {:.4f}".format(delta_x))
+        self.update_position(delta_x*self.pixels_per_meter, 0)
 
     def correct_ground_intersection(self, tunnel: tunnel) -> None:
         """Coloca o player precisamente acima do chão após uma queda.
@@ -171,18 +174,19 @@ class Robot(pygame.sprite.Sprite):
             self.update_position(0, -intersection_rect.height + 1)
             print(f"Interseção corrigida: {intersection_rect.height} pixels ajustados.")
 
-    def update_encoder(self, offset_camera: int):
-        traveled_distance = self.pos_x - offset_camera
-        print("MÓDULO: %.2f metros percorridos" % (traveled_distance -self.encoder_dist))
-        if math.fabs(traveled_distance - self.encoder_dist) >= self.pixels_per_meter:
-            self.encoder_dist = traveled_distance
+    # TODO (Pedro): testar se a posição está sendo calculada corretamente
+    def update_encoder(self) -> None:
+
+        self.x_coord_m += self.horizontal_speed_m_s * (1 / 60)  
+        if math.floor(self.x_coord_m) > self.last_x_coord_m:
+            self.last_x_coord_m = math.floor(self.x_coord_m)
             self.encoder = 1 if self.encoder == 0 else 0
             self._encoder_print_counter += 1
             if self._encoder_print_counter >= 15:
                 self._encoder_print_counter = 0
-                # print(
-                #     f"Encoder atualizado: {self.encoder} (distância total: {self._total_distance / self.pixels_per_meter:.2f} m)"
-                # )
+                print(
+                    f"Encoder atualizado: {self.encoder} (coordenada x {self.x_coord_m} m)"
+                )
 
     # TODO: IMPLEMENTAR RUÍDO DE MEDIÇÃO
     def update_lidar(self, tunnel: tunnel, offset_camera: int):

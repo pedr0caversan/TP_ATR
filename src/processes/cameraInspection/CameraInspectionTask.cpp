@@ -7,19 +7,31 @@
 #include <cstdio>
 
 static int dbg_anomaly_count = 0;
+static bool is_inspecting = false;
 
 static volatile sig_atomic_t anomaly_flag = 0;
 static void on_anomaly(int) { anomaly_flag = 1; }
 
+static volatile sig_atomic_t normal_flag = 0;
+static void on_normal(int) { normal_flag = 1; }
+
 void cameraInspectionHandler() {
     signal(SIGUSR1, on_anomaly);
+    signal(SIGUSR2, on_normal);
 
     while (true) {
         if (anomaly_flag) {
             anomaly_flag = 0;
+            normal_flag = 0;
             dbg_anomaly_count++;
             //printf("[CameraInspection] Anomalia detectada. Total: %d\n", dbg_anomaly_count);
-            // TODO (Pedro): implemenar lógica de inspeção
+            is_inspecting = true;
         }
+        if (normal_flag) {
+            normal_flag = 0;
+            is_inspecting = false;
+            //printf("[CameraInspection] Teto normalizado.\n");
+        }
+        // TODO (Davi): utilizar is_inspecting para decidir comportamento da câmera
     }
 }
