@@ -1,8 +1,11 @@
 import math
 import pygame
 import tunnel
+from pathlib import Path
 
+_BASE_DIR = Path(__file__).parent
 
+PRINT_EVERY_N = 15
 class Robot(pygame.sprite.Sprite):
     def __init__(self) -> None:
         super().__init__()
@@ -10,7 +13,7 @@ class Robot(pygame.sprite.Sprite):
         self.__sprites_idle = []
 
         # Load All Sprites
-        self.__import_sprites(1, "robot/robo.png", self.__sprites_idle)
+        self.__import_sprites(1, _BASE_DIR / "robot/robo.png", self.__sprites_idle)
 
         # Default Boolean and Character States
         self.is_animating = False
@@ -38,12 +41,14 @@ class Robot(pygame.sprite.Sprite):
         self.x_limit_reached = False
         self.y_limit_reached = False
 
-        self.meter = 72 # 1 metro = 72 pixels
+        self.pixels_per_meter = 72
 
         self.encoder_dist = 0
-        self.encoder = 0
+        self.encoder = False
         self.lidar = 0
         self._encoder_print_counter = 0
+        
+        self.debug_counter = 0
 
     # TODO: TERMINAR O DOCSTRING
     def __import_sprites(
@@ -85,7 +90,8 @@ class Robot(pygame.sprite.Sprite):
             self.direction = "right"
         if not (
             ((self.rect.topleft[0] <= 400) and self.direction == "left")
-            or ((self.rect.topleft[0] >= 720) and self.direction == "right")) or (self.x_limit_reached):
+            or ((self.rect.topleft[0] >= 720) and self.direction == "right")
+        ) or (self.x_limit_reached):
             self.pos_x += self.speed[0]
         if not self.y_limit_reached:
             self.pos_y += self.speed[1]
@@ -161,13 +167,19 @@ class Robot(pygame.sprite.Sprite):
             self._encoder_print_counter += 1
             if self._encoder_print_counter >= 15:
                 self._encoder_print_counter = 0
-                print(f"Encoder atualizado: {self.encoder} (distância percorrida: {traveled_distance} pixels)")
+                print(
+                    f"Encoder atualizado: {self.encoder} (distância total: {self._total_distance / self.pixels_per_meter:.2f} m)"
+                )
 
     # TODO: IMPLEMENTAR RUÍDO DE MEDIÇÃO
     def update_lidar(self, tunnel: tunnel, offset_camera: int):
         distance = tunnel.return_distance_to_ceiling(self.rect, offset_camera)
         if distance is not None:
-            self.lidar = distance / self.meter
+            self.lidar = distance / self.pixels_per_meter
+            self.debug_counter += 1
+            if self.debug_counter >= PRINT_EVERY_N:
+                self.debug_counter = 0
+                print("Lidar: {:.2f} m".format(self.lidar))
 
     def is_colliding(self, tunnel: tunnel) -> bool:
         """Retorna True se o robo estiver colidindo com o solo
@@ -207,6 +219,11 @@ class Robot(pygame.sprite.Sprite):
         pygame.draw.rect(screen, black, self.rect_down, 1)
         pygame.draw.rect(screen, white, self.rect_left, 1)
 
-        altura = self.lidar * self.meter
-        pygame.draw.line(screen, (255,255,255), (self.pos_x+(self.width/2),self.pos_y-altura), (self.pos_x+(self.width/2), self.pos_y),1)
-
+        altura = self.lidar * self.pixels_per_meter
+        pygame.draw.line(
+            screen,
+            (255, 255, 255),
+            (self.pos_x + (self.width / 2), self.pos_y - altura),
+            (self.pos_x + (self.width / 2), self.pos_y),
+            1,
+        )

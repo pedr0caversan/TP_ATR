@@ -80,7 +80,7 @@ void navigationCommandHandler() {
         if (anomaly_flag) {
             anomaly_flag = 0;
             dbg_anomaly_count++;
-            printf("[NavCommand] Anomalia detectada. Total: %d\n", dbg_anomaly_count);
+            //printf("[NavCommand] Anomalia detectada. Total: %d\n", dbg_anomaly_count);
             // TODO (Pedro): reduzir setpoint de velocidade
         }
 
@@ -90,9 +90,6 @@ void navigationCommandHandler() {
 
         std::string vel_str = std::to_string(current_vel);
         mosquitto_publish(mqtt_nav, NULL, "atr/telemetria/velocidade", vel_str.length(), vel_str.c_str(), 0, false);
-        
-        
-        // TODO (Pedro): transmitir current_vel por MQTT
     }
 
     shmdt(shm);

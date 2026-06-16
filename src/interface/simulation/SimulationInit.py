@@ -1,10 +1,13 @@
 import pygame
 import time
+from pathlib import Path
 
 from MQTTInterface import MQTTInterface
 from tunnel import Tunnel
 from robot import Robot
 from camera import Camera
+
+_BASE_DIR = Path(__file__).parent
 
 
 class Simulation:
@@ -20,7 +23,7 @@ class Simulation:
         pygame.display.set_caption("Simulação")
         self.running = True
 
-        self.tunnel = Tunnel("./tunnel/")
+        self.tunnel = Tunnel(str(_BASE_DIR / "tunnel"))
         self.robot = Robot()
         self.robot_group = pygame.sprite.Group()
         self.robot_group.add(self.robot)
@@ -71,17 +74,13 @@ class Simulation:
         """Movimenta o robô de acordo com a física da simulação, levando em consideração gravidade e dinâmica horizontal de movimento"""
         if not self.robot.is_colliding(self.tunnel):
             self.robot.apply_delta_gravity_effect(0.003, self.tunnel)
-
-            self.robot.apply_horizontal_velocity_effect(
-                self.control_effort, 1 / self.FPS
-            )
         else:
             self.robot.correct_ground_intersection(self.tunnel)
         if self.robot.is_colliding(self.tunnel):
             self.robot.vertical_speed = 0
+        self.robot.apply_horizontal_velocity_effect(self.control_effort, 1 / self.FPS)
 
     def simulation_run(self):
-        
 
         while self.running:
             for event in pygame.event.get():
@@ -98,7 +97,10 @@ class Simulation:
 
             self.update_sensor_data()
 
-            self.mqtt.publish_sensor_data(self.robot.encoder, self.robot.lidar)
+            # print(
+            #     f"Lidar: {self.robot.lidar:.2f} m, Encoder: {self.robot.encoder:.2f} m"
+            # )
+            self.mqtt.publish_sensor_data(self.robot.lidar, self.robot.encoder)
 
             pygame.display.flip()
 

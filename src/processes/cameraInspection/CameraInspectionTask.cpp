@@ -18,7 +18,7 @@ void cameraInspectionHandler() {
         if (anomaly_flag) {
             anomaly_flag = 0;
             dbg_anomaly_count++;
-            printf("[CameraInspection] Anomalia detectada. Total: %d\n", dbg_anomaly_count);
+            //printf("[CameraInspection] Anomalia detectada. Total: %d\n", dbg_anomaly_count);
             // TODO (Pedro): implemenar lógica de inspeção
         }
     }

@@ -28,7 +28,7 @@ class Tunnel:
         self.left_tile = 0
         self.right_tile = 0
         # DEBUG
-        self._lidar_print_counter = 0
+        self._debug_conter = 0
 
     def _load_base_images(self) -> None:
         tunnel_files = ["tunel.png", "tunel_buraco.png", "tunel_relevo.png"]
@@ -213,10 +213,10 @@ class Tunnel:
             ) and (object.y < robot_rect.y):
                 # Distância do topo do robô até o topo do objeto
                 distance = robot_rect.y - (object.y + object.height)
-                self._lidar_print_counter += 1
-                if self._lidar_print_counter >= 60:
-                    self._lidar_print_counter = 0
-                    print(f"Distância para teto (esquerda): {distance} pixels")
+                # self._debug_conter += 1
+                # if self._debug_conter >= 60:
+                #     self._debug_conter = 0
+                #     print(f"Distância para teto (esquerda): {distance} pixels")
                 return distance
 
         for object in self.colision_by_image[self.right_tile]:
