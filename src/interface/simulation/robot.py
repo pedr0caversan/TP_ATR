@@ -24,7 +24,7 @@ class Robot(pygame.sprite.Sprite):
         # Default Position and movement
         self.gravity_ = 25000
         self.vertical_speed = 0
-        self.horizontal_speed = 0
+        self.horizontal_speed_m_s = 2
         self.pos_x = 10
         self.pos_y = 400
         self.width = 100 * 2  # Largura do sprite do robo
@@ -43,7 +43,8 @@ class Robot(pygame.sprite.Sprite):
 
         self.pixels_per_meter = 72
 
-        self.x_coordinate = 0
+        self.x_coord_m = 0
+        self.last_x_coord_m = 0
         self.encoder = False
         self.lidar = 0
         self._encoder_print_counter = 0
@@ -140,11 +141,11 @@ class Robot(pygame.sprite.Sprite):
         )  # garante v_ss = max_horizontal_speed
 
         # motor menos atrito
-        accel = u * a_max - k_atrito * self.horizontal_speed
-        self.horizontal_speed += accel * delta_t
+        accel = u * a_max - k_atrito * self.horizontal_speed_m_s
+        self.horizontal_speed_m_s += accel * delta_t
 
         # Atualiza posição com a velocidade calculada
-        delta_x = self.horizontal_speed * delta_t
+        delta_x = self.horizontal_speed_m_s * delta_t
         self.update_position(delta_x, 0)
 
     def correct_ground_intersection(self, tunnel: tunnel) -> None:
@@ -158,22 +159,21 @@ class Robot(pygame.sprite.Sprite):
             self.update_position(0, -intersection_rect.height + 1)
             print(f"Interseção corrigida: {intersection_rect.height} pixels ajustados.")
 
-    def update_encoder(self, offset_camera: int):
-        self.x_coordinate += self.horizontal_speed * (1 / 60)  
-        
-        
-        
-        traveled_distance = self.pos_x - offset_camera
-        print("MÓDULO: %.2f metros percorridos" % (traveled_distance -self.x_coordinate))
-        if math.fabs(traveled_distance - self.x_coordinate) >= self.pixels_per_meter:
-            self.x_coordinate = traveled_distance
+    def update_encoder(self) -> None:
+
+        self.x_coord_m += self.horizontal_speed_m_s * (1 / 60)  
+        if math.floor(self.x_coord_m) > self.last_x_coord_m:
+            self.last_x_coord_m = math.floor(self.x_coord_m)
             self.encoder = 1 if self.encoder == 0 else 0
             self._encoder_print_counter += 1
             if self._encoder_print_counter >= 15:
                 self._encoder_print_counter = 0
-                # print(
-                #     f"Encoder atualizado: {self.encoder} (distância total: {self._total_distance / self.pixels_per_meter:.2f} m)"
-                # )
+                print(
+                    f"Encoder atualizado: {self.encoder} (coordenada x {self.x_coord_m} m)"
+                )
+        
+
+
 
     # TODO: IMPLEMENTAR RUÍDO DE MEDIÇÃO
     def update_lidar(self, tunnel: tunnel, offset_camera: int):

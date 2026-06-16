@@ -67,7 +67,7 @@ void distanceComputationHandler(std::binary_semaphore& x_was_sent,
         bool current_state = mqtt_i_encoder.load();
         static int print_counter = 0;
         if (print_counter++ % PRINT_EVERY_N == 0) {
-            printf("[Distance Computation] leitura do encoder: %d\n", current_state);
+            // printf("[Distance Computation] leitura do encoder: %d\n", current_state);
         }
 
         if (current_state != previous_encoder_state) {
