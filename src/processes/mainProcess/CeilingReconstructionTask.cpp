@@ -12,6 +12,7 @@
 #include "utils/coord_buffer.hpp"
 #include "utils/pos_buffer.hpp"
 
+const int T_MS = 20;
 const float CEILING_HEIGHT = 5.64;
 const float TOLERANCE = 0.5f;  // tolerância para detecção de anomalia no teto
 
@@ -21,8 +22,7 @@ std::atomic<float> mqtt_i_lidar{
 std::atomic<bool> mqtt_lidar_ready{
     false};  // sinaliza que ao menos uma leitura real foi recebida via MQTT
 const int LIDAR_SIMULATION_T_S = 1;
-// período da task em ms
-const int T_MS = 100;
+
 const float EMA_ALPHA =
     0.5;  // grau de sensibilidade do filtro EMA em relação a valores novos
 
