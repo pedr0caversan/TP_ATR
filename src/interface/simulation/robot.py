@@ -161,15 +161,15 @@ class Robot(pygame.sprite.Sprite):
     def update_encoder(self, offset_camera: int):
         traveled_distance = self.pos_x - offset_camera
         print("MÓDULO: %.2f metros percorridos" % (traveled_distance -self.encoder_dist))
-        if math.fabs(traveled_distance - self.encoder_dist) >= self.meter:
+        if math.fabs(traveled_distance - self.encoder_dist) >= self.pixels_per_meter:
             self.encoder_dist = traveled_distance
             self.encoder = 1 if self.encoder == 0 else 0
             self._encoder_print_counter += 1
             if self._encoder_print_counter >= 15:
                 self._encoder_print_counter = 0
-                print(
-                    f"Encoder atualizado: {self.encoder} (distância total: {self._total_distance / self.pixels_per_meter:.2f} m)"
-                )
+                # print(
+                #     f"Encoder atualizado: {self.encoder} (distância total: {self._total_distance / self.pixels_per_meter:.2f} m)"
+                # )
 
     # TODO: IMPLEMENTAR RUÍDO DE MEDIÇÃO
     def update_lidar(self, tunnel: tunnel, offset_camera: int):
