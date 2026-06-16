@@ -3,6 +3,8 @@
 #include <mosquitto.h>
 #include <unistd.h>
 
+#include <iostream>
+
 #include "utils/coord_buffer.hpp"
 
 extern struct mosquitto* mqtt_client_main;
@@ -37,22 +39,34 @@ float calcConfidence(const CoordData& item, std::vector<CoordData>& history) {
 void saveDataDisk(const CoordData& item, float confidence) {
     const std::string filename = "data_log.csv";
     bool write_header = false;
+    static bool first_run = true;
 
+    // Verifica se o arquivo existe e está vazio
     {
         std::ifstream check(filename);
-        if (!check.is_open() ||
+        if (!check.good() ||
             check.peek() == std::ifstream::traits_type::eof()) {
             write_header = true;
         }
+        check.close();
     }
 
     std::ofstream file(filename, std::ios::app);
     if (!file.is_open()) {
+        std::cerr << "Erro: Não foi possível abrir arquivo " << filename
+                  << " (pwd: " << getcwd(nullptr, 0) << ")" << std::endl;
         return;
+    }
+
+    if (first_run) {
+        std::cerr << "[DataColector] Arquivo de log criado/aberto em: "
+                  << filename << std::endl;
+        first_run = false;
     }
 
     if (write_header) {
         file << "timestamp,coord_x,coord_y,confidence\n";
+        std::cerr << "[DataColector] Header escrito no CSV" << std::endl;
     }
 
     const auto timestamp_ms =
@@ -62,6 +76,9 @@ void saveDataDisk(const CoordData& item, float confidence) {
 
     file << timestamp_ms << ',' << item.coord[0] << ',' << item.coord[1] << ','
          << confidence << '\n';
+
+    // Force sincronização com disco
+    file.flush();
 }
 
 void saveDataTopic(const CoordData& item, float confidence) {
@@ -84,22 +101,14 @@ void dataColectorHandler(CoordBuffer& coord_buf) {
     // ============================================================
 
     while (true) {
-        // ########################################################################
         // Sincronização de threads por buffer bloqueante
         CoordData item = getBufferData(&coord_buf);
-        // ########################################################################
 
         float confidence = calcConfidence(item, history);
 
-        // $$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
-        // IPC via arquivo em disco — persiste coordenadas e confiança em CSV
         saveDataDisk(item, confidence);
-        // $$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
 
-        // $$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
-        // IPC via MQTT 
         saveDataTopic(item, confidence);
-        // $$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
 
         updateHistory(history, item);
     }
