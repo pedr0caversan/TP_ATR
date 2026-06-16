@@ -20,6 +20,7 @@ struct mosquitto* mqtt_client_main = nullptr;
 
 extern std::atomic<bool> mqtt_i_encoder;
 extern std::atomic<float> mqtt_i_lidar;
+extern std::atomic<bool> mqtt_lidar_ready;
 
 void on_message_main_process(struct mosquitto* mosq, void* userdata,
                              const struct mosquitto_message* message) {
@@ -32,6 +33,7 @@ void on_message_main_process(struct mosquitto* mosq, void* userdata,
     }
     if (topic == "atr/sim/lidar") {
         mqtt_i_lidar.store(std::stof(payload));
+        mqtt_lidar_ready.store(true);
     }
 }
 

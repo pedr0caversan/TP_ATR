@@ -12,10 +12,11 @@
 #include "utils/coord_buffer.hpp"
 #include "utils/pos_buffer.hpp"
 
-const float CEILING_HEIGHT = 5.99;
+const float CEILING_HEIGHT = 5.64;
 const float TOLERANCE = 0.5f;  // tolerância para detecção de anomalia no teto
 
 std::atomic<float> mqtt_i_lidar{CEILING_HEIGHT};  // valor do sensor LIDAR atualizado pela simulação via MQTT
+std::atomic<bool> mqtt_lidar_ready{false};         // sinaliza que ao menos uma leitura real foi recebida via MQTT
 const int LIDAR_SIMULATION_T_S = 1;
 // período da task em ms
 const int T_MS = 100;
@@ -114,8 +115,13 @@ void ceilingReconstructionHandler(std::binary_semaphore& x_was_sent,
         refined_data.coord[1] = filterValue(f_y, y_coord);
 
         bool anomaly_detected =
-            ((refined_data.coord[1] > CEILING_HEIGHT + TOLERANCE) ||
-             (refined_data.coord[1] < CEILING_HEIGHT - TOLERANCE));
+            mqtt_lidar_ready.load() &&
+            ((y_coord > CEILING_HEIGHT + TOLERANCE) ||
+             (y_coord < CEILING_HEIGHT - TOLERANCE));
+        // printf("[Reconstrução do Teto] y e altura: %.2f m\n", y_coord - CEILING_HEIGHT);
+        if (anomaly_detected) {
+           // printf("[Reconstrução do Teto] Anomalia detectada no teto!\n");
+        }
         if (anomaly_detected && !is_inspecting) {
             is_inspecting = true;
             kill(pid_nav_command, SIGUSR1);
