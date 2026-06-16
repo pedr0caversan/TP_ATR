@@ -43,7 +43,7 @@ class Robot(pygame.sprite.Sprite):
 
         self.pixels_per_meter = 72
 
-        self.encoder_dist = 0
+        self.x_coordinate = 0
         self.encoder = False
         self.lidar = 0
         self._encoder_print_counter = 0
@@ -159,10 +159,14 @@ class Robot(pygame.sprite.Sprite):
             print(f"Interseção corrigida: {intersection_rect.height} pixels ajustados.")
 
     def update_encoder(self, offset_camera: int):
+        self.x_coordinate += self.horizontal_speed * (1 / 60)  
+        
+        
+        
         traveled_distance = self.pos_x - offset_camera
-        print("MÓDULO: %.2f metros percorridos" % (traveled_distance -self.encoder_dist))
-        if math.fabs(traveled_distance - self.encoder_dist) >= self.pixels_per_meter:
-            self.encoder_dist = traveled_distance
+        print("MÓDULO: %.2f metros percorridos" % (traveled_distance -self.x_coordinate))
+        if math.fabs(traveled_distance - self.x_coordinate) >= self.meter:
+            self.x_coordinate = traveled_distance
             self.encoder = 1 if self.encoder == 0 else 0
             self._encoder_print_counter += 1
             if self._encoder_print_counter >= 15:
