@@ -19,8 +19,8 @@ const float Ki = 0.1;
 
 // TODO (Pedro): sintonizar controlador assim que tiver modelo da planta
 float velocityController(float reference, float feedback) {
-    printf("[Controle Navegação] setpoint: %.2f | feedback: %.2f\n", reference,
-           feedback);
+    // printf("[Controle Navegação] setpoint: %.2f | feedback: %.2f\n", reference,
+    //        feedback);
     static float integral = 0.0f;
     const float T_S = T_MS / 1000.0f;
     const float U_MAX = 100.0f;

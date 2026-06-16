@@ -121,10 +121,6 @@ void distanceComputationHandler(std::binary_semaphore& x_was_sent,
         if (x_is_needed.try_acquire()) {
             x_was_sent.release();
         }
-        // ########################################################################
-
-        // ########################################################################
-        // Sincronização de threads por dupla de semáforos
         // Notifica NavigationControlTask que a velocidade foi atualizada no
         // buffer, se ela já sinalizou que está esperando
         if (vel_is_needed.try_acquire()) {

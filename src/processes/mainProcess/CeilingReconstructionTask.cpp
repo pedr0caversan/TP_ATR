@@ -98,7 +98,7 @@ void ceilingReconstructionHandler(std::binary_semaphore& x_was_sent,
         // ########################################################################
         // Sincronização de threads por dupla de semáforos
         // Garante que o valor da coordenada já foi atualizado no buffer pela
-        // thread de Cálculo de Distância antes de consumi-lo
+        // thread de Cálculo de Distância antes de consumir a informação
         x_is_needed.release();
         x_was_sent.acquire();
         PosData pos_data = std::get<PosData>(pos_buf.consumer_latest());
@@ -108,18 +108,17 @@ void ceilingReconstructionHandler(std::binary_semaphore& x_was_sent,
 
         // TODO (Pedro): apagar esses cálculos na versão final para evitar
         // chamadas ao sistema desnecessárias
-        auto now = std::chrono::steady_clock::now();
-        double latency_ms =
-            std::chrono::duration<double, std::milli>(now - pos_data.timestamp)
-                .count();
+        // auto now = std::chrono::steady_clock::now();
+        // double latency_ms =
+        //     std::chrono::duration<double, std::milli>(now - pos_data.timestamp)
+        //         .count();
         // printf("[Reconstrução do Teto] latência x: %.3f ms\n", latency_ms);
 
         double t = std::chrono::duration<double>(
                        std::chrono::steady_clock::now() - task_start)
                        .count();
         float y_coord = mqtt_i_lidar.load();
-        printf("[Reconstrução do Teto] x: %d, y: %.2f, latência: %.3f ms\n",
-               x_coord, y_coord, latency_ms);
+        //printf("[Reconstrução do Teto] x: %d, y: %.2f\n", x_coord, y_coord);
 
         CoordData refined_data = {std::chrono::steady_clock::now(), {0, 0}};
         refined_data.coord[0] = filterValue(f_x, x_coord);

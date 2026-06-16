@@ -17,9 +17,10 @@ static volatile sig_atomic_t normal_flag = 0;
 static void on_normal(int) { normal_flag = 1; }
 
 static bool is_inspecting = false;
-const float AUTO_VELOCITY = 20.0f;
-static float mqtt_velocity =
-    AUTO_VELOCITY;  // Armazena velocidade recebida por MQTT
+static float inspection_direction =
+    1.0f;  // direção capturada ao entrar em inspeção
+const float INSPEC_VELOCITY = 5.0f;
+static float mqtt_velocity = 0;
 
 static int dbg_anomaly_count = 0;
 
@@ -30,15 +31,14 @@ void on_message_nav_cmd(struct mosquitto* mosq, void* userdata,
 
     if (topic == "atr/cmd/velocidade") {
         mqtt_velocity = std::stof(payload);
-        printf("[NavCommand] Recebido via MQTT -> Velocidade: %.2f\n",
-               mqtt_velocity);
+        // printf("[NavCommand] Recebido via MQTT -> Velocidade: %.2f\n",
+        //        mqtt_velocity);
     }
 }
 
 void navigationCommandHandler() {
     // $$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
-    // IPC via sinais POSIX — registra handlers para SIGUSR1 (anomalia) e
-    // SIGUSR2 (normalização) enviados por CeilingReconstructionTask
+    // IPC via sinais POSIX 
     signal(SIGUSR1, on_anomaly);
     signal(SIGUSR2, on_normal);
     // $$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
@@ -94,22 +94,25 @@ void navigationCommandHandler() {
         mosquitto_loop(mqtt_nav, 0, 1);
         // $$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
 
+        // IPC por memória compartilhada — lê feedback de velocidade da NavInfo
+        pthread_mutex_lock(&shm->feedback_mtx);
+        float current_vel = shm->current_vel;
+        pthread_mutex_unlock(&shm->feedback_mtx);
         // $$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
-        // IPC via sinais POSIX — consome flags atômicas definidas pelos
-        // handlers de SIGUSR1/SIGUSR2 para atualizar estado de inspeção
+
+        // $$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
+        // IPC via sinais POSIX 
         if (anomaly_flag) {
             anomaly_flag = 0;
             normal_flag = 0;
+            // captura direção pelo sinal da velocidade real do robô no momento
+            // da anomalia; evita usar nova_vel que pode já ser 0 (tecla solta)
+            inspection_direction = (current_vel >= 0.0f) ? 1.0f : -1.0f;
             is_inspecting = true;
-            dbg_anomaly_count++;
-            // printf("[NavCommand] Anomalia detectada. Total: %d\n",
-            // dbg_anomaly_count);
         }
         if (normal_flag) {
             normal_flag = 0;
             is_inspecting = false;
-            // printf("[NavCommand] Teto normalizado. Retomando velocidade
-            // normal.\n");
         }
         // $$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
 
@@ -118,16 +121,16 @@ void navigationCommandHandler() {
 
         // $$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
         // IPC por memória compartilhada — escreve setpoint na NavInfo
+        // Em inspeção preserva a direção capturada no momento da anomalia;
+        // evita forçar marcha à frente quando o robô estava recuando
         pthread_mutex_lock(&shm->setpoint_mtx);
-        shm->setpoint_vel = is_inspecting ? nova_vel / 4 : nova_vel;
+        // printf("[NavCommand] Nova vel: %.2f | Inspecionando: %d\n", nova_vel, is_inspecting);
+        shm->setpoint_vel = is_inspecting
+                                ? inspection_direction * INSPEC_VELOCITY
+                                : nova_vel;
         // printf("is_inspecting: %d | setpoint_vel: %.2f\n", is_inspecting,
         // shm->setpoint_vel);
         pthread_mutex_unlock(&shm->setpoint_mtx);
-
-        // IPC por memória compartilhada — lê feedback de velocidade da NavInfo
-        pthread_mutex_lock(&shm->feedback_mtx);
-        float current_vel = shm->current_vel;
-        pthread_mutex_unlock(&shm->feedback_mtx);
         // $$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
 
         // $$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$

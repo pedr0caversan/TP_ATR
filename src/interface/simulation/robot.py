@@ -200,7 +200,7 @@ class Robot(pygame.sprite.Sprite):
             self.debug_counter += 1
             if self.debug_counter >= PRINT_EVERY_N:
                 self.debug_counter = 0
-                print("Lidar: {:.2f} m".format(self.lidar))
+                # print("Lidar: {:.2f} m".format(self.lidar))
 
     def is_colliding(self, tunnel: tunnel) -> bool:
         """Retorna True se o robo estiver colidindo com o solo
