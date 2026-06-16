@@ -1,5 +1,6 @@
 import pygame
 import time
+import os
 from pathlib import Path
 
 from MQTTInterface import MQTTInterface
@@ -9,6 +10,8 @@ from camera import Camera
 
 _BASE_DIR = Path(__file__).parent
 
+os.environ['SDL_VIDEO_WINDOW_POS'] = "75,35"
+
 
 class Simulation:
     def __init__(self) -> None:
@@ -17,14 +20,14 @@ class Simulation:
         pygame.font.init()
 
         # Game Screen
-        screen_width = 1280
-        screen_height = 720
+        screen_width = 1000
+        screen_height = 563
         self.screen = pygame.display.set_mode((screen_width, screen_height))
         pygame.display.set_caption("Simulação")
         self.running = True
 
         self.tunnel = Tunnel(str(_BASE_DIR / "tunnel"))
-        self.robot = Robot()
+        self.robot = Robot(self.screen)
         self.robot_group = pygame.sprite.Group()
         self.robot_group.add(self.robot)
         self.my_camera = Camera(self.tunnel, self.robot, self.screen)

@@ -15,6 +15,7 @@ class Tunnel:
         self.image_layers = []
 
         self.colision_by_image = {}
+        # default base values; will be recalculated at render time
         self.ground = pygame.Rect(0, 670, 1280, 50)
         self.entrance = pygame.Rect(-10, 0, 10, 720)
 
@@ -57,13 +58,21 @@ class Tunnel:
         ]
 
     def associate_image_to_object(self, tile: int, offset_x: int):
+        # Scale constants relative to a base 1280x720 design
+        scale_x = getattr(self, "scale_x", 1.0)
+        scale_y = getattr(self, "scale_y", 1.0)
+        base = {
+            "ceiling_h": 80,
+            "hole_h": 1,
+            "obstacle_h": 160,
+        }
         if tile == 0:
-            ceiling = pygame.Rect(offset_x, 0, 1280, 80)
+            ceiling = pygame.Rect(offset_x, 0, int(1280 * scale_x), int(base["ceiling_h"] * scale_y))
             self.colision_by_image[0] = [self.entrance, self.ground, ceiling]
         elif tile == 1:
-            ceiling1 = pygame.Rect(offset_x, 0, 550, 80)
-            ceiling2 = pygame.Rect(offset_x + 700, 0, 580, 80)
-            hole = pygame.Rect(offset_x + 550, 0, 150, 1)
+            ceiling1 = pygame.Rect(offset_x, 0, int(550 * scale_x), int(base["ceiling_h"] * scale_y))
+            ceiling2 = pygame.Rect(offset_x + int(700 * scale_x), 0, int(580 * scale_x), int(base["ceiling_h"] * scale_y))
+            hole = pygame.Rect(offset_x + int(550 * scale_x), 0, int(150 * scale_x), int(base["hole_h"] * scale_y))
             self.colision_by_image[1] = [
                 self.entrance,
                 self.ground,
@@ -72,9 +81,9 @@ class Tunnel:
                 hole,
             ]
         elif tile == 2:
-            ceiling1 = pygame.Rect(offset_x, 0, 600, 80)
-            ceiling2 = pygame.Rect(offset_x + 650, 0, 630, 80)
-            obstacle = pygame.Rect(offset_x + 600, 0, 50, 160)
+            ceiling1 = pygame.Rect(offset_x, 0, int(600 * scale_x), int(base["ceiling_h"] * scale_y))
+            ceiling2 = pygame.Rect(offset_x + int(650 * scale_x), 0, int(630 * scale_x), int(base["ceiling_h"] * scale_y))
+            obstacle = pygame.Rect(offset_x + int(600 * scale_x), 0, int(50 * scale_x), int(base["obstacle_h"] * scale_y))
             self.colision_by_image[2] = [
                 self.entrance,
                 self.ground,
@@ -97,6 +106,16 @@ class Tunnel:
         scroll_x = off_set_x + self.x_correction
         scroll_y = off_set_y + self.y_correction
 
+        # compute scale factors relative to base design 1280x720
+        self.scale_x = screen_width / 1280.0
+        self.scale_y = screen_height / 720.0
+
+        # update ground and entrance rects according to current screen size
+        ground_h = int(50 * self.scale_y)
+        self.ground = pygame.Rect(0, screen_height - ground_h, screen_width, ground_h)
+        entrance_w = int(10 * self.scale_x)
+        self.entrance = pygame.Rect(-entrance_w, 0, entrance_w, screen_height)
+
         # escala e cache das imagens conforme o tamanho da tela
         size_key = (screen_width, screen_height)
         if size_key not in self.scaled_cache:
@@ -113,7 +132,7 @@ class Tunnel:
 
         # Importante porque o left_x e o right_x devem decrescer, porém a operação módulo funciona ao contrário com números negativos, então PRECISO setar offset caso ele seja 0
         if offset == 0:
-            offset = 1280
+            offset = screen_width
 
         left_x = offset - screen_width
         right_x = offset
