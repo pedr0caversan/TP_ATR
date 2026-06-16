@@ -11,7 +11,7 @@
 
 extern struct mosquitto* mqtt_client_main;
 
-const int T_MS = 80;
+const int T_MS = 16;
 
 // Parâmetros do controlador PI
 const float Kp = 1;
@@ -19,7 +19,8 @@ const float Ki = 0.1;
 
 // TODO (Pedro): sintonizar controlador assim que tiver modelo da planta
 float velocityController(float reference, float feedback) {
-    printf("[Controle Navegação] setpoint: %.2f | feedback: %.2f\n", reference, feedback);
+    printf("[Controle Navegação] setpoint: %.2f | feedback: %.2f\n", reference,
+           feedback);
     static float integral = 0.0f;
     const float T_S = T_MS / 1000.0f;
     const float U_MAX = 100.0f;
@@ -41,7 +42,7 @@ float velocityController(float reference, float feedback) {
     // TODO (Pedro): reativar controlador
     // para testes iniciais, a dinâmica da planta vai ser deixada livre, sem
     // controle
-    return e;
+    return 5 * e;
 }
 
 void navigationControlHandler(std::binary_semaphore& vel_was_sent,
@@ -56,10 +57,8 @@ void navigationControlHandler(std::binary_semaphore& vel_was_sent,
         if (shmid < 0) {
             shmid = shmget(SHM_NAV_KEY, sizeof(NavInfo), 0666);
             if (shmid >= 0) {
-                navigation_info =
-                    (NavInfo*)shmat(shmid, nullptr, 0);
-                if (navigation_info ==
-                    (void*)-1) {
+                navigation_info = (NavInfo*)shmat(shmid, nullptr, 0);
+                if (navigation_info == (void*)-1) {
                     perror("shmat navControl");
                     return;
                 }
@@ -104,7 +103,7 @@ void navigationControlHandler(std::binary_semaphore& vel_was_sent,
 
         // calcula esforço de controle de 0 a 100%
         float control_effort = velocityController(setpoint, feedback_vel);
-        //printf("[Controle Navegação] Esforço: %.2f\n", control_effort);
+        // printf("[Controle Navegação] Esforço: %.2f\n", control_effort);
 
         // $$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
         // IPC via MQTT — publica erro de velocidade em atr/sim/esforco_controle

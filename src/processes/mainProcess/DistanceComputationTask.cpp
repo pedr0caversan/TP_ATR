@@ -2,22 +2,20 @@
 
 #include <unistd.h>
 
-#include <iostream>
-
 #include <atomic>
 #include <chrono>
+#include <iostream>
 #include <thread>
-
 
 const int PRINT_EVERY_N = 5;
 
-const int T_MS = 20;
+const int T_MS = 4;
 const float METERS_PER_ENCODER_SIGNAL = 1;
 
 std::atomic<bool> mqtt_i_encoder{false};
 
-//static bool i_encoder = false;
-//static int call_count = 0;  // para simulação do encoder
+// static bool i_encoder = false;
+// static int call_count = 0;  // para simulação do encoder
 
 /*
 void simulateEncoder(double t) {
@@ -75,7 +73,8 @@ void distanceComputationHandler(std::binary_semaphore& x_was_sent,
 
         static int print_counter = 0;
         if (print_counter++ % PRINT_EVERY_N == 0) {
-            // printf("[Distance Computation] leitura do encoder: %d\n", current_state);
+            // printf("[Distance Computation] leitura do encoder: %d\n",
+            // current_state);
         }
 
         if (current_state != previous_encoder_state) {
@@ -84,7 +83,8 @@ void distanceComputationHandler(std::binary_semaphore& x_was_sent,
             ===================================*/
 
             pos_data.pos += 1;
-            printf("[Distance Computation] posição do robô: %d\n", pos_data.pos);
+            printf("[Distance Computation] posição do robô: %d\n",
+                   pos_data.pos);
             previous_encoder_state = current_state;
 
             // Derivar a velocidade usando tempo real entre eventos
@@ -93,8 +93,9 @@ void distanceComputationHandler(std::binary_semaphore& x_was_sent,
                     .count();
             if (dt_s > 0) {
                 double velocity = METERS_PER_ENCODER_SIGNAL / dt_s;
-                vel_data.vel = velocity;   
-                printf("[Distance Computation] velocidade do robô: %.2f m/s\n", vel_data.vel);
+                vel_data.vel = velocity;
+                printf("[Distance Computation] velocidade do robô: %.2f m/s\n",
+                       vel_data.vel);
             }
 
             prev_encoder_timestamp = now;
