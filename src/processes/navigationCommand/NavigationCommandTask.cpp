@@ -18,23 +18,20 @@ static void on_normal(int) { normal_flag = 1; }
 
 static bool is_inspecting = false;
 const float AUTO_VELOCITY = 20.0f;
+static float mqtt_velocity =
+    AUTO_VELOCITY;  // Armazena velocidade recebida por MQTT
 
 static int dbg_anomaly_count = 0;
 
 void on_message_nav_cmd(struct mosquitto* mosq, void* userdata,
                         const struct mosquitto_message* message) {
-    NavInfo* shm =
-        (NavInfo*)userdata;  // Recupera o ponteiro da memória compartilhada
     std::string topic(message->topic);
     std::string payload((char*)message->payload);
 
     if (topic == "atr/cmd/velocidade") {
-        float nova_vel = std::stof(payload);
-        pthread_mutex_lock(&shm->setpoint_mtx);
-        shm->setpoint_vel = nova_vel;  // Atualiza o setpoint
-        pthread_mutex_unlock(&shm->setpoint_mtx);
-        printf("[NavCommand] Recebido via MQTT -> Novo Setpoint: %.2f\n",
-               nova_vel);
+        mqtt_velocity = std::stof(payload);
+        printf("[NavCommand] Recebido via MQTT -> Velocidade: %.2f\n",
+               mqtt_velocity);
     }
 }
 
@@ -70,15 +67,17 @@ void navigationCommandHandler() {
 
     mosquitto_lib_init();
     struct mosquitto* mqtt_nav =
-        mosquitto_new("robo_nav_cmd", true, shm);  // Passa 'shm' como userdata
+        mosquitto_new("robo_nav_cmd", true, NULL);  // Não passa userdata
     mosquitto_message_callback_set(mqtt_nav, on_message_nav_cmd);
     mosquitto_connect(mqtt_nav, "localhost", 1883, 60);
     mosquitto_subscribe(mqtt_nav, NULL, "atr/cmd/#", 0);
-    mosquitto_loop_start(mqtt_nav);  // Roda em background
 
     anomaly_flag = 0;
     normal_flag = 0;
     while (true) {
+        // Processa mensagens MQTT de forma síncrona
+        mosquitto_loop(mqtt_nav, 0, 1);
+
         if (anomaly_flag) {
             anomaly_flag = 0;
             normal_flag = 0;
@@ -93,8 +92,8 @@ void navigationCommandHandler() {
             // printf("[NavCommand] Teto normalizado. Retomando velocidade
             // normal.\n");
         }
-        // TODO (Pedro): receber do operador remoto
-        float nova_vel = AUTO_VELOCITY;  // Para teste
+        // Usa velocidade recebida por MQTT (ou AUTO_VELOCITY como padrão)
+        float nova_vel = mqtt_velocity;
 
         pthread_mutex_lock(&shm->setpoint_mtx);
         shm->setpoint_vel = is_inspecting ? nova_vel / 4 : nova_vel;
