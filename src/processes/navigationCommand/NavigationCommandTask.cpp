@@ -36,9 +36,16 @@ void on_message_nav_cmd(struct mosquitto* mosq, void* userdata,
 }
 
 void navigationCommandHandler() {
+    // $$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
+    // IPC via sinais POSIX — registra handlers para SIGUSR1 (anomalia) e
+    // SIGUSR2 (normalização) enviados por CeilingReconstructionTask
     signal(SIGUSR1, on_anomaly);
     signal(SIGUSR2, on_normal);
-    // Abre memória compatilhada para trocar informações com NavigationControl
+    // $$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
+
+    // $$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
+    // IPC por memória compartilhada — cria e inicializa segmento NavInfo
+    // compartilhado com NavigationControlTask para troca de setpoint e feedback
     int shmid = shmget(SHM_NAV_KEY, sizeof(NavInfo), 0666 | IPC_CREAT);
     if (shmid < 0) {
         perror("shmget");
@@ -55,7 +62,7 @@ void navigationCommandHandler() {
     shm->setpoint_vel = 0.0f;
     shm->current_vel = 0.0f;
 
-    // Inicializa o mutex como process-shared para funcionar entre processos
+    // Inicializa os mutexes como process-shared para funcionar entre processos
     pthread_mutexattr_t attr;
     pthread_mutexattr_init(&attr);
     pthread_mutexattr_setpshared(&attr, PTHREAD_PROCESS_SHARED);
@@ -64,20 +71,32 @@ void navigationCommandHandler() {
     pthread_mutexattr_destroy(&attr);
 
     shm->initialized = true;  // sinaliza que mutexes estão prontos
+    // $$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
 
+    // $$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
+    // IPC via MQTT - recebe setpoint de velocidade e publica telemetria
     mosquitto_lib_init();
-    struct mosquitto* mqtt_nav =
-        mosquitto_new("robo_nav_cmd", true, NULL);  // Não passa userdata
+    struct mosquitto* mqtt_nav = mosquitto_new("robo_nav_cmd", true, NULL);
     mosquitto_message_callback_set(mqtt_nav, on_message_nav_cmd);
     mosquitto_connect(mqtt_nav, "localhost", 1883, 60);
     mosquitto_subscribe(mqtt_nav, NULL, "atr/cmd/#", 0);
+    // $$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
+
+    // ============================================================
+    // loop da task
+    // ============================================================
 
     anomaly_flag = 0;
     normal_flag = 0;
     while (true) {
-        // Processa mensagens MQTT de forma síncrona
+        // $$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
+        // IPC via MQTT — processa mensagens de entrada de forma síncrona
         mosquitto_loop(mqtt_nav, 0, 1);
+        // $$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
 
+        // $$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
+        // IPC via sinais POSIX — consome flags atômicas definidas pelos
+        // handlers de SIGUSR1/SIGUSR2 para atualizar estado de inspeção
         if (anomaly_flag) {
             anomaly_flag = 0;
             normal_flag = 0;
@@ -92,19 +111,27 @@ void navigationCommandHandler() {
             // printf("[NavCommand] Teto normalizado. Retomando velocidade
             // normal.\n");
         }
+        // $$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
+
         // Usa velocidade recebida por MQTT (ou AUTO_VELOCITY como padrão)
         float nova_vel = mqtt_velocity;
 
+        // $$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
+        // IPC por memória compartilhada — escreve setpoint na NavInfo
         pthread_mutex_lock(&shm->setpoint_mtx);
         shm->setpoint_vel = is_inspecting ? nova_vel / 4 : nova_vel;
         // printf("is_inspecting: %d | setpoint_vel: %.2f\n", is_inspecting,
         // shm->setpoint_vel);
         pthread_mutex_unlock(&shm->setpoint_mtx);
 
+        // IPC por memória compartilhada — lê feedback de velocidade da NavInfo
         pthread_mutex_lock(&shm->feedback_mtx);
         float current_vel = shm->current_vel;
         pthread_mutex_unlock(&shm->feedback_mtx);
+        // $$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
 
+        // $$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
+        // IPC via MQTT — publica telemetria de velocidade e estado de inspeção
         std::string vel_str = std::to_string(current_vel);
         mosquitto_publish(mqtt_nav, NULL, "atr/telemetria/velocidade",
                           vel_str.length(), vel_str.c_str(), 0, false);
@@ -112,6 +139,7 @@ void navigationCommandHandler() {
         std::string insp_str = is_inspecting ? "1" : "0";
         mosquitto_publish(mqtt_nav, NULL, "atr/telemetria/inspecao",
                           insp_str.length(), insp_str.c_str(), 0, false);
+        // $$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
 
         usleep(1000);
     }
