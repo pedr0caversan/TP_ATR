@@ -45,10 +45,11 @@ class Camera():
             self.bounded_character.y_limit_reached = False
 
         char_x = self.bounded_character.rect.topleft[0]
+        robot_pixel_speed = abs(self.bounded_character.speed[0])
         if (char_x <= left_threshold and self.bounded_character.speed[0] < 0) and not (self.off_set_x > -4 * (screen_w / 1280.0)):
-            self.off_set_map(self.speed, 0)
+            self.off_set_map(robot_pixel_speed, 0)
         elif (char_x >= right_threshold and self.bounded_character.speed[0] > 0):
-            self.off_set_map(-self.speed, 0)
+            self.off_set_map(-robot_pixel_speed, 0)
 
         # if (self.bounded_character.rect.topleft[1] <= 200 and self.bounded_character.vertical_speed > 0) and not(self.off_set_y < -212.5):
         #     self.off_set_map(0, -self.bounded_character.delta_pos_y)
