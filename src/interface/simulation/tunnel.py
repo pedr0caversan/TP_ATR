@@ -64,15 +64,15 @@ class Tunnel:
         base = {
             "ceiling_h": 80,
             "hole_h": 1,
-            "obstacle_h": 160,
+            "obstacle_h": 165,
         }
         if tile == 0:
             ceiling = pygame.Rect(offset_x, 0, int(1280 * scale_x), int(base["ceiling_h"] * scale_y))
             self.colision_by_image[0] = [self.entrance, self.ground, ceiling]
         elif tile == 1:
-            ceiling1 = pygame.Rect(offset_x, 0, int(550 * scale_x), int(base["ceiling_h"] * scale_y))
-            ceiling2 = pygame.Rect(offset_x + int(700 * scale_x), 0, int(580 * scale_x), int(base["ceiling_h"] * scale_y))
-            hole = pygame.Rect(offset_x + int(550 * scale_x), 0, int(150 * scale_x), int(base["hole_h"] * scale_y))
+            ceiling1 = pygame.Rect(offset_x, 0, int(485 * scale_x), int(base["ceiling_h"] * scale_y))
+            ceiling2 = pygame.Rect(offset_x + int(770 * scale_x), 0, int(510 * scale_x), int(base["ceiling_h"] * scale_y))
+            hole = pygame.Rect(offset_x + int(485 * scale_x), 0, int(285 * scale_x), int(base["hole_h"] * scale_y))
             self.colision_by_image[1] = [
                 self.entrance,
                 self.ground,
@@ -81,9 +81,9 @@ class Tunnel:
                 hole,
             ]
         elif tile == 2:
-            ceiling1 = pygame.Rect(offset_x, 0, int(600 * scale_x), int(base["ceiling_h"] * scale_y))
-            ceiling2 = pygame.Rect(offset_x + int(650 * scale_x), 0, int(630 * scale_x), int(base["ceiling_h"] * scale_y))
-            obstacle = pygame.Rect(offset_x + int(600 * scale_x), 0, int(50 * scale_x), int(base["obstacle_h"] * scale_y))
+            ceiling1 = pygame.Rect(offset_x, 0, int(570 * scale_x), int(base["ceiling_h"] * scale_y))
+            ceiling2 = pygame.Rect(offset_x + int(685 * scale_x), 0, int(595 * scale_x), int(base["ceiling_h"] * scale_y))
+            obstacle = pygame.Rect(offset_x + int(570 * scale_x), 0, int(115 * scale_x), int(base["obstacle_h"] * scale_y))
             self.colision_by_image[2] = [
                 self.entrance,
                 self.ground,

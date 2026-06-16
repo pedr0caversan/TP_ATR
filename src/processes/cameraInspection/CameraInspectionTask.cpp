@@ -44,8 +44,13 @@ void cameraInspectionHandler() {
             is_inspecting = false;
             // printf("[CameraInspection] Teto normalizado.\n");
         }
-        // TODO (Davi): utilizar is_inspecting para decidir comportamento da
-        // câmera
+
+        if (is_inspecting) {
+            printf("[CameraInspection] Inspecionando imagens da câmera");
+            for (int i = 0; i < 2000000000; i++) {
+                int j = i;
+            }
+        }
     }
 
     sem_destroy(&wakeup_sem);
