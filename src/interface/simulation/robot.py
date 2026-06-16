@@ -7,12 +7,21 @@ _BASE_DIR = Path(__file__).parent
 
 PRINT_EVERY_N = 15
 class Robot(pygame.sprite.Sprite):
-    def __init__(self) -> None:
+    def __init__(self, screen: pygame.Surface = None) -> None:
         super().__init__()
         # Sprite Vectors
         self.__sprites_idle = []
 
-        # Load All Sprites
+        # Determine scale based on screen size (default reference 1280x720)
+        if screen is not None:
+            sw, sh = screen.get_size()
+            self.scale_x = sw / 1280.0
+            self.scale_y = sh / 720.0
+        else:
+            self.scale_x = 1.0
+            self.scale_y = 1.0
+
+        # Load All Sprites (scale sprites according to screen)
         self.__import_sprites(1, _BASE_DIR / "robot/robo.png", self.__sprites_idle)
 
         # Default Boolean and Character States
@@ -21,27 +30,29 @@ class Robot(pygame.sprite.Sprite):
         self.current_sprite = 0
         self.image = self.__sprites_idle[self.current_sprite]
 
-        # Default Position and movement
+        # Default Position and movement (scaled)
         self.gravity_ = 25000
         self.vertical_speed = 0
+
         self.horizontal_speed_m_s = 0
-        self.pos_x = 10
-        self.pos_y = 400
-        self.width = 100 * 2  # Largura do sprite do robo
-        self.height = 80 * 2  # Altura do sprite do robo
+        self.pos_x = int(10 * self.scale_x)
+        self.pos_y = int(400 * self.scale_y)
+        self.width = int(100 * 2 * ((self.scale_x + self.scale_y) / 2.0))  # Largura do sprite do robo
+        self.height = int(80 * 2 * ((self.scale_x + self.scale_y) / 2.0))  # Altura do sprite do robo
+
         self.rect_down = pygame.Rect(
-            self.pos_x + 20, self.pos_y + 100, self.width - 40, self.height - 100
+            self.pos_x + int(20 * self.scale_x), self.pos_y + int(100 * self.scale_y), self.width - int(40 * self.scale_x), self.height - int(100 * self.scale_y)
         )
-        self.rect_left = pygame.Rect(self.pos_x, self.pos_y + 50, 10, self.height - 100)
+        self.rect_left = pygame.Rect(self.pos_x, self.pos_y + int(50 * self.scale_y), max(1, int(10 * self.scale_x)), self.height - int(100 * self.scale_y))
         self.rect = pygame.Rect(self.pos_x, self.pos_y, self.width, self.height)
         self.rect.topleft = [self.pos_x, self.pos_y]
         self.speed = [0.0, 0.0]
-        self.max_horizontal_speed = 8
+        self.max_horizontal_speed = max(1, int(8 * ((self.scale_x + self.scale_y) / 2.0)))
         self.delta_pos_y = 0
         self.x_limit_reached = False
         self.y_limit_reached = False
 
-        self.pixels_per_meter = 72
+        self.pixels_per_meter = int(72 * ((self.scale_x + self.scale_y) / 2.0))
 
         self.x_coord_m = 0
         self.last_x_coord_m = 0
@@ -63,7 +74,9 @@ class Robot(pygame.sprite.Sprite):
             sprites_vector: vetor de sprites para onde serão importados os sprites
 
         """
-        scale = 2
+        # base sprite scale was 2 for 1280x720; adapt using average scale
+        avg_scale = (getattr(self, "scale_x", 1.0) + getattr(self, "scale_y", 1.0)) / 2.0
+        scale = max(1.0, 2 * avg_scale)
         for i in range(number_of_sprites):
             sprite = pygame.image.load(str(arquive)).convert_alpha()
             # Scale the sprite
@@ -89,9 +102,11 @@ class Robot(pygame.sprite.Sprite):
             self.direction = "left"
         if new_pos_x > 0:
             self.direction = "right"
+        left_threshold = int(400 * self.scale_x)
+        right_threshold = int(720 * self.scale_x)
         if not (
-            ((self.rect.topleft[0] <= 400) and self.direction == "left")
-            or ((self.rect.topleft[0] >= 720) and self.direction == "right")
+            ((self.rect.topleft[0] <= left_threshold) and self.direction == "left")
+            or ((self.rect.topleft[0] >= right_threshold) and self.direction == "right")
         ) or (self.x_limit_reached):
             self.pos_x += self.speed[0]
         if not self.y_limit_reached:

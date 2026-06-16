@@ -1,5 +1,10 @@
 import math
 import pygame
+import os
+
+from MQTTInterface import MQTTInterface
+
+os.environ['SDL_VIDEO_WINDOW_POS'] = "75,630"
 
 
 class RemoteOperationInterface:
@@ -7,8 +12,8 @@ class RemoteOperationInterface:
         pygame.init()
         pygame.font.init()
 
-        self.screen_width = 1280
-        self.screen_height = 720
+        self.screen_width = 1750
+        self.screen_height = 400
         self.screen = pygame.display.set_mode((self.screen_width, self.screen_height))
         pygame.display.set_caption("Interface de Controle Remoto")
         self.clock = pygame.time.Clock()
@@ -16,13 +21,21 @@ class RemoteOperationInterface:
 
         # Estado do robô
         self.mode = "MANUAL"
+
+        # Pegar do mqtt, talvez a velocidade eu tenha que derivar
         self.position_x = 100.0
-        self.velocity_x = 0.0
+        self.speed = 0.0
         self.lidar_distance = 100.0
+        self.is_inspecting = False
+
+        self.speed_setpoint = 0.0
         self.last_command = "Nenhum comando enviado"
 
+        # Enquanto não recebe dados verdadeiros
+        self.speed = self.speed_setpoint
+
         self.position_history = [self.position_x]
-        self.velocity_history = [self.velocity_x]
+        self.velocity_history = [self.speed]
         self.lidar_history = [self.lidar_distance]
         self.max_history = 220
 
@@ -30,42 +43,79 @@ class RemoteOperationInterface:
         self.big_font = pygame.font.SysFont(None, 34, bold=True)
         self.FPS = 60
 
+        # MQTT
+        self.mqtt = MQTTInterface(actuator_callback=self.update_data_colector_variables)
+        self.mqtt.connect()
+
+    def update_data_colector_variables(self, data):
+        """Callback chamado ao receber dados MQTT de múltiplos tópicos.
+
+        Para o tópico `atr/telemetria/log`, atualiza diretamente a posição e o LIDAR.
+        """
+        if not isinstance(data, dict):
+            return
+
+        topic_type = data.get("type")
+        payload = data.get("payload")
+
+        if topic_type == "telemetria":
+            if isinstance(payload, dict):
+                x = payload.get("x")
+                y = payload.get("y")
+            else:
+                x = None
+                y = None
+
+            if x is not None:
+                try:
+                    self.position_x = float(x)
+                except Exception:
+                    pass
+
+            if y is not None:
+                try:
+                    self.lidar_distance = float(y)
+                except Exception:
+                    pass
+
+        elif topic_type == "velocidade":
+            try:
+                self.speed = float(payload)
+            except Exception:
+                pass
+
+        elif topic_type == "inspecao":
+            try:
+                self.is_inspecting = bool(payload)
+            except Exception:
+                pass
+
     def act_upon_pressed_keys(self) -> None:
         keys = pygame.key.get_pressed()
 
         if keys[pygame.K_a]:
             self.mode = "AUTOMÁTICO"
             self.last_command = "Ativou modo automático"
-            self.velocity_x = 2.0
+            self.speed_setpoint = 2.0
         elif keys[pygame.K_m]:
             self.mode = "MANUAL"
             self.last_command = "Ativou modo manual"
-            self.velocity_x = 0.0
+            self.speed_setpoint = 0.0
 
         if self.mode == "MANUAL":
             if keys[pygame.K_LEFT]:
-                self.velocity_x = -4.0
+                self.speed_setpoint = -4.0
                 self.last_command = "Mandou o robô ir para a esquerda"
             elif keys[pygame.K_RIGHT]:
-                self.velocity_x = 4.0
+                self.speed_setpoint = 4.0
                 self.last_command = "Mandou o robô ir para a direita"
             elif keys[pygame.K_s]:
-                self.velocity_x = 0.0
+                self.speed_setpoint = 0.0
                 self.last_command = "Mandou o robô parar"
 
     def update_state(self) -> None:
-        if self.mode == "AUTOMÁTICO":
-            self.velocity_x = 2.0
-
-        self.position_x += self.velocity_x
-
-        # Talvez não seja ideal colocar a posição x, já que não tem limite
-        self.position_x = max(20, min(self.position_x, self.screen_width - 120))
-
-        self.lidar_distance = 90 #+ 40 * math.sin(self.position_x / 40.0)
-
         self.position_history.append(self.position_x)
-        self.velocity_history.append(self.velocity_x)
+        self.velocity_history.append(self.speed)
         self.lidar_history.append(self.lidar_distance)
 
         if len(self.position_history) > self.max_history:
@@ -117,34 +167,61 @@ class RemoteOperationInterface:
     def draw_interface(self) -> None:
         self.screen.fill((12, 12, 30))
 
-        self.draw_text("Estado do robô", 820, 20, (255, 255, 255))
-        self.draw_text(f"Modo: {self.mode}", 820, 60)
-        self.draw_text(f"Posição: {self.position_x:.1f}", 820, 90)
-        self.draw_text(f"Velocidade: {self.velocity_x:.1f}", 820, 120)
-        self.draw_text(f"LIDAR: {self.lidar_distance:.1f} m", 820, 150)
-        self.draw_text(f"Último comando:", 820, 185)
-        self.draw_text(self.last_command, 820, 210, (200, 200, 120))
+        margin = 20
+        left_panel_width = max(400, int(self.screen_width * 0.62))
+        right_panel_x = left_panel_width + margin
+        right_panel_width = max(260, self.screen_width - right_panel_x - margin)
+        graph_width = left_panel_width - 2 * margin
+        graph_height = max(150, int((self.screen_height - 3 * margin) / 2))
 
-        self.draw_text("Comandos disponíveis", 820, 260)
-        self.draw_text("A -> Ativar modo automático", 820, 290)
-        self.draw_text("M -> Ativar modo manual", 820, 320)
+        text_x = right_panel_x + 10
+        text_y = margin
+        line_height = 32
+        x_offset = 20
+        circle_offset = 8
 
-        if self.mode == "AUTOMÁTICO":
-            self.draw_text("Opções abaixo desabilitadas.", 820, 360, (220, 140, 140))
+        self.draw_text("Inspecionando falha:", text_x, text_y, (255, 255, 255))
+        text_width, text_height = self.font.size("Inspecionando falha:")
+        if self.is_inspecting:
+            pygame.draw.circle(self.screen, (0,255,0), (text_x+text_width+x_offset,text_y+circle_offset), 10, 0)
         else:
-            self.draw_text("Opções abaixo habilitadas.", 820, 360, (140, 220, 140))
+            pygame.draw.circle(self.screen, (255,0,0), (text_x+text_width+x_offset,text_y+circle_offset), 10, 0)
+        text_y += line_height
 
-        self.draw_text("← -> Esquerda (manual)", 820, 400)
-        self.draw_text("→ -> Direita (manual)", 820, 430)
-        self.draw_text("S -> Parar (manual)", 820, 460)
+        self.draw_text(f"Modo: {self.mode}", text_x, text_y)
+        text_y += line_height
+        self.draw_text(f"Posição: {self.position_x:.1f} m", text_x, text_y)
+        text_width, text_height = self.font.size(f"Posição: {self.position_x:.1f}")
+        self.draw_text(f"Velocidade: {self.speed:.1f} m/s", text_x+text_width+x_offset*3, text_y)
+        text_y += line_height
+        self.draw_text(f"LIDAR: {self.lidar_distance:.1f} m", text_x, text_y)
+        text_y += line_height
+        self.draw_text("Último comando:", text_x, text_y)
+        text_width, text_height = self.font.size(f"Último comando:")
+        self.draw_text(self.last_command, text_x+text_width+x_offset*2, text_y+circle_offset/2, (200, 200, 120))
+        text_y += line_height * 2
 
-        position_rect = pygame.Rect(20, 20, 760, 200)
-        velocity_rect = pygame.Rect(20, 240, 760, 200)
-        lidar_rect = pygame.Rect(20, 460, 760, 200)
+        self.draw_text("Comandos disponíveis", text_x, text_y)
+        text_width, text_height = self.font.size(f"Comandos disponíveis")
+        if self.mode == "AUTOMÁTICO":
+            self.draw_text("Opções abaixo desabilitadas.", text_x+text_width*1.5, text_y, (220, 140, 140))
+        else:
+            self.draw_text("Opções abaixo habilitadas.", text_x+text_width*1.5, text_y, (140, 220, 140))
+        text_y += line_height
+        self.draw_text("A : Ativar modo automático", text_x, text_y)
+        self.draw_text("<- : Esquerda (manual)", text_x+text_width*1.5, text_y)
+        text_y += line_height
+        self.draw_text("M : Ativar modo manual", text_x, text_y)
+        self.draw_text("-> : Direita (manual)", text_x+text_width*1.5, text_y)
+        text_y += line_height
+        self.draw_text("S : Parar (manual)", text_x+text_width*1.5, text_y)
 
-        self.draw_graph(self.position_history, position_rect, (80, 220, 120), "Posição (m)", 0, self.screen_width)
-        self.draw_graph(self.velocity_history, velocity_rect, (240, 180, 40), "Velocidade (m/frame)", -6, 6)
-        self.draw_graph(self.lidar_history, lidar_rect, (180, 100, 240), "Distância LIDAR (m)", 20, 140)
+        velocity_rect = pygame.Rect(margin, margin, graph_width, graph_height)
+        lidar_rect = pygame.Rect(margin, margin + graph_height + margin, graph_width, graph_height)
+
+        # self.draw_graph(self.position_history, position_rect, (80, 220, 120), "Posição (m)", 0, self.screen_width)
+        self.draw_graph(self.velocity_history, velocity_rect, (240, 180, 40), "Velocidade (m/s)", -10, 10)
+        self.draw_graph(self.lidar_history, lidar_rect, (180, 100, 240), "Distância LIDAR (m)", 0, 10)
 
     def run(self) -> None:
         while self.running:
@@ -155,6 +232,8 @@ class RemoteOperationInterface:
             self.act_upon_pressed_keys()
             self.update_state()
             self.draw_interface()
+
+            self.mqtt.publish_setpoint(self.speed_setpoint)
 
             pygame.display.flip()
             self.clock.tick(self.FPS)
