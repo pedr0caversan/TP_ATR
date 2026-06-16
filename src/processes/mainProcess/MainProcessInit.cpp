@@ -66,8 +66,9 @@ void mainProcessInit() {
 
     // ########################################################################
     // Sincronização de threads por duplas de semáforos binários
-    // x_was_sent / x_is_needed: entre DistanceComputation e CeilingReconstruction
-    // vel_was_sent / vel_is_needed: entre DistanceComputation e NavigationControl
+    // x_was_sent / x_is_needed: entre DistanceComputation e
+    // CeilingReconstruction vel_was_sent / vel_is_needed: entre
+    // DistanceComputation e NavigationControl
     std::binary_semaphore x_was_sent{0};
     std::binary_semaphore x_is_needed{0};
     std::binary_semaphore vel_was_sent{0};

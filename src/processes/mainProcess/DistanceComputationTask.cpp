@@ -13,7 +13,8 @@ const int T_MS = 4;
 const float METERS_PER_ENCODER_SIGNAL = 1;
 
 std::atomic<bool> mqtt_i_encoder{false};
-std::atomic<float> mqtt_i_sim_vel{0.0f};  // velocidade com sinal publicada pela simulação
+std::atomic<float> mqtt_i_sim_vel{
+    0.0f};  // velocidade com sinal publicada pela simulação
 
 // static bool i_encoder = false;
 // static int call_count = 0;  // para simulação do encoder
@@ -84,7 +85,8 @@ void distanceComputationHandler(std::binary_semaphore& x_was_sent,
             ===================================*/
 
             // usa o sinal da velocidade simulada para determinar a direção do
-            // movimento; permite pos_data.pos decrementar ao andar para esquerda
+            // movimento; permite pos_data.pos decrementar ao andar para
+            // esquerda
             int direction = (mqtt_i_sim_vel.load() >= 0.0f) ? 1 : -1;
 
             pos_data.pos += direction;

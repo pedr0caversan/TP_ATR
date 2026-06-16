@@ -18,6 +18,7 @@ class MQTTInterface:
         broker_port: int = 1883,
         data_colector_topic: str = "atr/telemetria/log",
         speed_topic: str = "atr/telemetria/velocidade",
+        sim_velocity_topic: str = "atr/sim/velocidade",
         inspection_topic: str = "atr/telemetria/inspecao",
         setpoint_topic: str = "atr/cmd/velocidade",
         actuator_callback: Optional[Callable[[dict], Any]] = None,
@@ -26,6 +27,7 @@ class MQTTInterface:
         self.broker_port = broker_port
         self.data_colector_topic = data_colector_topic
         self.speed_topic = speed_topic
+        self.sim_velocity_topic = sim_velocity_topic
         self.inspection_topic = inspection_topic
         self.setpoint_topic = setpoint_topic
         self.actuator_callback = actuator_callback or self.default_actuator_callback
@@ -45,8 +47,9 @@ class MQTTInterface:
             )
             self.client.subscribe(self.data_colector_topic)
             self.client.subscribe(self.speed_topic)
+            self.client.subscribe(self.sim_velocity_topic)
             self.client.subscribe(self.inspection_topic)
-            logger.info("Inscrito em %s, %s, %s", self.data_colector_topic, self.speed_topic, self.inspection_topic)
+            logger.info("Inscrito em %s, %s, %s, %s", self.data_colector_topic, self.speed_topic, self.sim_velocity_topic, self.inspection_topic)
         else:
             logger.error("Falha ao conectar no broker MQTT: código %s", rc)
 
@@ -78,13 +81,15 @@ class MQTTInterface:
             self.last_actuator_message = message
             self.actuator_callback(message)
 
-        elif msg.topic == self.speed_topic:
+        elif msg.topic in (self.speed_topic, self.sim_velocity_topic):
             try:
                 payload_data = float(payload)
             except Exception as exc:
                 logger.error("Erro ao decodificar mensagem MQTT em %s: %s", msg.topic, exc)
                 return
 
+            # atr/sim/velocidade tem prioridade (60 FPS); atr/telemetria/velocidade
+            # é ignorada se a simulação estiver publicando o tópico direto
             message = {
                 "topic": msg.topic,
                 "type": "velocidade",
