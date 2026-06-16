@@ -23,9 +23,9 @@ class RemoteOperationInterface:
         self.mode = "MANUAL"
 
         # Pegar do mqtt, talvez a velocidade eu tenha que derivar
-        self.position_x = 100.0
+        self.position_x = 0.0
         self.speed = 0.0
-        self.lidar_distance = 100.0
+        self.lidar_distance = 5.0
         self.is_inspecting = False
 
         self.speed_setpoint = 0.0
@@ -221,7 +221,7 @@ class RemoteOperationInterface:
 
         # self.draw_graph(self.position_history, position_rect, (80, 220, 120), "Posição (m)", 0, self.screen_width)
         self.draw_graph(self.velocity_history, velocity_rect, (240, 180, 40), "Velocidade (m/s)", -5, 5)
-        self.draw_graph(self.lidar_history, lidar_rect, (180, 100, 240), "Distância LIDAR (m)", 2, 8)
+        self.draw_graph(self.lidar_history, lidar_rect, (180, 100, 240), "Distância LIDAR (m)", 3, 7)
 
     def run(self) -> None:
         while self.running:
