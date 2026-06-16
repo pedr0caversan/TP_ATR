@@ -96,7 +96,7 @@ class RemoteOperationInterface:
         if keys[pygame.K_a]:
             self.mode = "AUTOMÁTICO"
             self.last_command = "Ativou modo automático"
-            self.speed_setpoint = 20.0
+            self.speed_setpoint = 10.0
         elif keys[pygame.K_m]:
             self.mode = "MANUAL"
             self.last_command = "Ativou modo manual"
@@ -104,10 +104,10 @@ class RemoteOperationInterface:
 
         if self.mode == "MANUAL":
             if keys[pygame.K_LEFT]:
-                self.speed_setpoint = -40.0
+                self.speed_setpoint = -15.0
                 self.last_command = "Mandou o robô ir para a esquerda"
             elif keys[pygame.K_RIGHT]:
-                self.speed_setpoint = 40.0
+                self.speed_setpoint = 15.0
                 self.last_command = "Mandou o robô ir para a direita"
             elif keys[pygame.K_s]:
                 self.speed_setpoint = 0.0

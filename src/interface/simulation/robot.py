@@ -180,9 +180,10 @@ class Robot(pygame.sprite.Sprite):
     # TODO (Pedro): testar se a posição está sendo calculada corretamente
     def update_encoder(self) -> None:
 
-        self.x_coord_m += self.horizontal_speed_m_s * (1 / 60)  
-        if math.floor(self.x_coord_m) > self.last_x_coord_m:
-            self.last_x_coord_m = math.floor(self.x_coord_m)
+        self.x_coord_m += self.horizontal_speed_m_s * (1 / 60)
+        x_floor = math.floor(abs(self.x_coord_m))
+        if x_floor != self.last_x_coord_m:
+            self.last_x_coord_m = x_floor
             self.encoder = 1 if self.encoder == 0 else 0
             self._encoder_print_counter += 1
             if self._encoder_print_counter >= 15:
