@@ -24,7 +24,7 @@ class Robot(pygame.sprite.Sprite):
         # Default Position and movement
         self.gravity_ = 25000
         self.vertical_speed = 0
-        self.horizontal_speed_m_s = 2
+        self.horizontal_speed_m_s = 0
         self.pos_x = 10
         self.pos_y = 400
         self.width = 100 * 2  # Largura do sprite do robo
@@ -80,7 +80,7 @@ class Robot(pygame.sprite.Sprite):
         """Muda a posição do Rect do robô e a posição dos seu rects direcionais
 
         Args:
-            new_pos_x: valor a ser somado à posição da direção horizontal
+            new_pos_x: valor em pixels a ser somado à posição da direção horizontal
             new_pos_y: o mesmo, porém à direção vertical
         """
         self.speed[0] = new_pos_x
@@ -131,11 +131,10 @@ class Robot(pygame.sprite.Sprite):
 
         # Parâmetros físicos
         # a_max: aceleração com atuador saturado (pixels/s²)
-        # TODO (Pedro, Davi): Decidir quantos pixels correspondem a 1 metro na simulação
         # TODO (Pedro): tunar os parâmetros pro movimento do robô ficar natural
         # k_atrito: coeficiente de atrito de rolamento (1/s), derivado de a_max e v_max
         # obs: Tau = v_max/a_max = 1/k_atrito
-        a_max = 24.0
+        a_max = 5.0
         k_atrito = (
             a_max / self.max_horizontal_speed
         )  # garante v_ss = max_horizontal_speed
@@ -146,7 +145,8 @@ class Robot(pygame.sprite.Sprite):
 
         # Atualiza posição com a velocidade calculada
         delta_x = self.horizontal_speed_m_s * delta_t
-        self.update_position(delta_x, 0)
+        # print("delta_x (m): {:.4f}".format(delta_x))
+        self.update_position(delta_x*self.pixels_per_meter, 0)
 
     def correct_ground_intersection(self, tunnel: tunnel) -> None:
         """Coloca o player precisamente acima do chão após uma queda.
@@ -159,6 +159,7 @@ class Robot(pygame.sprite.Sprite):
             self.update_position(0, -intersection_rect.height + 1)
             print(f"Interseção corrigida: {intersection_rect.height} pixels ajustados.")
 
+    # TODO (Pedro): testar se a posição está sendo calculada corretamente
     def update_encoder(self) -> None:
 
         self.x_coord_m += self.horizontal_speed_m_s * (1 / 60)  
@@ -171,9 +172,6 @@ class Robot(pygame.sprite.Sprite):
                 print(
                     f"Encoder atualizado: {self.encoder} (coordenada x {self.x_coord_m} m)"
                 )
-        
-
-
 
     # TODO: IMPLEMENTAR RUÍDO DE MEDIÇÃO
     def update_lidar(self, tunnel: tunnel, offset_camera: int):
