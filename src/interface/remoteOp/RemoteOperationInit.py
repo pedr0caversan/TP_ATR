@@ -96,7 +96,7 @@ class RemoteOperationInterface:
         if keys[pygame.K_a]:
             self.mode = "AUTOMÁTICO"
             self.last_command = "Ativou modo automático"
-            self.speed_setpoint = 2.0
+            self.speed_setpoint = 20.0
         elif keys[pygame.K_m]:
             self.mode = "MANUAL"
             self.last_command = "Ativou modo manual"
@@ -104,10 +104,10 @@ class RemoteOperationInterface:
 
         if self.mode == "MANUAL":
             if keys[pygame.K_LEFT]:
-                self.speed_setpoint = -4.0
+                self.speed_setpoint = -40.0
                 self.last_command = "Mandou o robô ir para a esquerda"
             elif keys[pygame.K_RIGHT]:
-                self.speed_setpoint = 4.0
+                self.speed_setpoint = 40.0
                 self.last_command = "Mandou o robô ir para a direita"
             elif keys[pygame.K_s]:
                 self.speed_setpoint = 0.0
@@ -201,7 +201,7 @@ class RemoteOperationInterface:
         self.draw_text(self.last_command, text_x+text_width+x_offset*2, text_y+circle_offset/2, (200, 200, 120))
         text_y += line_height * 2
 
-        self.draw_text("Comandos disponíveis", text_x, text_y)
+        self.draw_text("Comandos disponíveis", text_x, text_y, (140, 220, 140))
         text_width, text_height = self.font.size(f"Comandos disponíveis")
         if self.mode == "AUTOMÁTICO":
             self.draw_text("Opções abaixo desabilitadas.", text_x+text_width*1.5, text_y, (220, 140, 140))
@@ -220,8 +220,8 @@ class RemoteOperationInterface:
         lidar_rect = pygame.Rect(margin, margin + graph_height + margin, graph_width, graph_height)
 
         # self.draw_graph(self.position_history, position_rect, (80, 220, 120), "Posição (m)", 0, self.screen_width)
-        self.draw_graph(self.velocity_history, velocity_rect, (240, 180, 40), "Velocidade (m/s)", -10, 10)
-        self.draw_graph(self.lidar_history, lidar_rect, (180, 100, 240), "Distância LIDAR (m)", 0, 10)
+        self.draw_graph(self.velocity_history, velocity_rect, (240, 180, 40), "Velocidade (m/s)", -5, 5)
+        self.draw_graph(self.lidar_history, lidar_rect, (180, 100, 240), "Distância LIDAR (m)", 2, 8)
 
     def run(self) -> None:
         while self.running:

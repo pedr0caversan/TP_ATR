@@ -130,7 +130,7 @@ class Robot(pygame.sprite.Sprite):
         self.update_position(0, -self.delta_pos_y)
 
     def apply_horizontal_velocity_effect(
-        self, control_effort: float, delta_t: float
+        self, control_effort: float, delta_t: float, tunnel: tunnel
     ) -> None:
         """Atualiza a velocidade horizontal com modelo de 1ª ordem (motor + atrito de rolamento)
         e em seguida atualiza a posição.
@@ -161,7 +161,10 @@ class Robot(pygame.sprite.Sprite):
         # Atualiza posição com a velocidade calculada
         delta_x = self.horizontal_speed_m_s * delta_t
         # print("delta_x (m): {:.4f}".format(delta_x))
-        self.update_position(delta_x*self.pixels_per_meter, 0)
+        if self.is_left_colliding(tunnel) and delta_x < 0:
+            pass
+        else:
+            self.update_position(delta_x*self.pixels_per_meter, 0)
 
     def correct_ground_intersection(self, tunnel: tunnel) -> None:
         """Coloca o player precisamente acima do chão após uma queda.

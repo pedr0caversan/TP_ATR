@@ -45,23 +45,6 @@ class Simulation:
         self.robot.update_encoder()
         self.robot.update_lidar(self.tunnel, self.my_camera.off_set_x)
 
-    def act_upon_pressed_keys(self) -> None:
-        """Toma as ações necessárias a respeito das teclas pressionadas no teclado."""
-        keys = pygame.key.get_pressed()
-
-        if keys[pygame.K_LEFT]:
-            if not keys[pygame.K_RIGHT] and not self.robot.is_left_colliding(
-                self.tunnel
-            ):
-                self.robot.update_position(-self.robot.max_horizontal_speed, 0)
-
-        if keys[pygame.K_RIGHT]:
-            if not keys[pygame.K_LEFT]:
-                self.robot.update_position(self.robot.max_horizontal_speed, 0)
-
-        if not keys[pygame.K_LEFT] and not keys[pygame.K_RIGHT]:
-            self.robot.update_position(0, 0)
-
     def control_robot(self) -> None:
         """Atualiza as animações do robo e desenha elas na tela"""
         self.my_camera.follow_robot()
@@ -81,7 +64,7 @@ class Simulation:
             self.robot.correct_ground_intersection(self.tunnel)
         if self.robot.is_colliding(self.tunnel):
             self.robot.vertical_speed = 0
-        self.robot.apply_horizontal_velocity_effect(self.control_effort, 1 / self.FPS)
+        self.robot.apply_horizontal_velocity_effect(self.control_effort, 1 / self.FPS, self.tunnel)
 
     def simulation_run(self):
 
@@ -93,11 +76,6 @@ class Simulation:
             current_time = time.time()
 
             self.move_robot()
-
-            self.control_robot()
-
-            # TODO: Apagar duas linhas abaixo na versão final, não haverá controle por teclado na simulação
-            self.act_upon_pressed_keys()
 
             self.control_robot()
 
