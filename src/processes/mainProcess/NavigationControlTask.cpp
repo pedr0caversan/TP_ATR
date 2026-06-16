@@ -47,7 +47,9 @@ float velocityController(float reference, float feedback) {
 void navigationControlHandler(std::binary_semaphore& vel_was_sent,
                               std::binary_semaphore& vel_is_needed,
                               VelBuffer& vel_buffer) {
-    // Aguarda navCommand criar e inicializar a memória compartilhada
+    // $$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
+    // IPC por memória compartilhada — aguarda NavigationCommandTask criar e
+    // inicializar o segmento NavInfo antes de anexá-lo
     int shmid = -1;
     NavInfo* navigation_info = nullptr;
     while (navigation_info == nullptr || !navigation_info->initialized) {
@@ -55,9 +57,9 @@ void navigationControlHandler(std::binary_semaphore& vel_was_sent,
             shmid = shmget(SHM_NAV_KEY, sizeof(NavInfo), 0666);
             if (shmid >= 0) {
                 navigation_info =
-                    (NavInfo*)shmat(shmid, nullptr, 0);  // copia informação
+                    (NavInfo*)shmat(shmid, nullptr, 0);
                 if (navigation_info ==
-                    (void*)-1) {  // erro de shmat retorna todos bits em 1
+                    (void*)-1) {
                     perror("shmat navControl");
                     return;
                 }
@@ -65,46 +67,63 @@ void navigationControlHandler(std::binary_semaphore& vel_was_sent,
         }
         usleep(1000);
     }
+    // $$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
 
     auto next_wake = std::chrono::steady_clock::now();
+
+    // ============================================================
+    // loop da task
+    // ============================================================
+
     while (true) {
         // Tarefa com período definido
         next_wake += std::chrono::milliseconds(T_MS);
         std::this_thread::sleep_until(next_wake);
 
-        vel_is_needed
-            .release();  // anuncia que precisa de informação de velocidade para
-                         // consumir informação mais atualizada possível
+        // ########################################################################
+        // Sincronização de threads por dupla de semáforos
+        // Sinaliza que precisa da velocidade e aguarda DistanceComputationTask
+        // confirmar que o buffer foi atualizado
+        vel_is_needed.release();
         vel_was_sent.acquire();
         VelData vel_data = std::get<VelData>(vel_buffer.consumer_latest());
         float feedback_vel = vel_data.vel;
+        // ########################################################################
 
         // printf("[Controle Navegação] Velocidade atual: %.2f\n",
         // feedback_vel);
 
-        // obtenção do setpoint por memória compartilhada com proteção por mutex
+        // $$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
+        // IPC por memória compartilhada — lê setpoint definido por
+        // NavigationCommandTask com proteção por mutex
         pthread_mutex_lock(&navigation_info->setpoint_mtx);
         float setpoint = navigation_info->setpoint_vel;
         // printf("[Controle Navegação] Setpoint atual: %.2f\n",setpoint);
         pthread_mutex_unlock(&navigation_info->setpoint_mtx);
+        // $$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
 
         // calcula esforço de controle de 0 a 100%
         float control_effort = velocityController(setpoint, feedback_vel);
         //printf("[Controle Navegação] Esforço: %.2f\n", control_effort);
 
-        // envio do esforço de controle para a simulação
+        // $$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
+        // IPC via MQTT — publica erro de velocidade em atr/sim/esforco_controle
+        // para a simulação aplicar o controlador PI interno na planta
         if (mqtt_client_main != nullptr) {
-            // control_effort = 10; // TODO (Pedro): retirar linha de teste
             std::string u_str = std::to_string(control_effort);
             mosquitto_publish(mqtt_client_main, NULL,
                               "atr/sim/esforco_controle", u_str.length(),
                               u_str.c_str(), 0, false);
         }
+        // $$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
 
-        // envia velocidade atual para navCommand repassar para display
+        // $$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
+        // IPC por memória compartilhada — escreve velocidade atual na NavInfo
+        // para NavigationCommandTask publicar como telemetria
         pthread_mutex_lock(&navigation_info->feedback_mtx);
         navigation_info->current_vel = feedback_vel;
         pthread_mutex_unlock(&navigation_info->feedback_mtx);
+        // $$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
 
         // auto now = std::chrono::steady_clock::now();
         // double latency_ms =

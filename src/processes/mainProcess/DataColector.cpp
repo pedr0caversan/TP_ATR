@@ -78,11 +78,29 @@ void saveDataTopic(const CoordData& item, float confidence) {
 
 void dataColectorHandler(CoordBuffer& coord_buf) {
     static std::vector<CoordData> history;
+
+    // ============================================================
+    // loop da task
+    // ============================================================
+
     while (true) {
+        // ########################################################################
+        // Sincronização de threads por buffer bloqueante
         CoordData item = getBufferData(&coord_buf);
+        // ########################################################################
+
         float confidence = calcConfidence(item, history);
+
+        // $$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
+        // IPC via arquivo em disco — persiste coordenadas e confiança em CSV
         saveDataDisk(item, confidence);
+        // $$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
+
+        // $$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
+        // IPC via MQTT 
         saveDataTopic(item, confidence);
+        // $$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
+
         updateHistory(history, item);
     }
 }

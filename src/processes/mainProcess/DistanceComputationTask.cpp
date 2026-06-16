@@ -46,13 +46,19 @@ void distanceComputationHandler(std::binary_semaphore& x_was_sent,
     PosData pos_data = {0};
     VelData vel_data = {0};
 
-    // Guarda a última leitura do encoder                                
+    // $$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
+    // IPC via MQTT (indireta) — lê estado atual do encoder publicado por
+    // MainProcessInit a partir do tópico atr/sim/encoder
     bool previous_encoder_state = mqtt_i_encoder.load();
-        //i_encoder;  
+    // $$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
 
     auto task_start = std::chrono::steady_clock::now();
     auto prev_encoder_timestamp = task_start;
     auto next_wake = task_start;
+
+    // ============================================================
+    // loop da task
+    // ============================================================
 
     while (true) {
         // Definição do período da tarefa
@@ -61,10 +67,12 @@ void distanceComputationHandler(std::binary_semaphore& x_was_sent,
 
         auto now = std::chrono::steady_clock::now();
 
-        //double t = std::chrono::duration<double>(now - task_start).count();
-        //simulateEncoder(t);
-
+        // $$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
+        // IPC via MQTT (indireta) — lê novo estado do encoder via atômica
+        // atualizada pelo callback MQTT de MainProcessInit
         bool current_state = mqtt_i_encoder.load();
+        // $$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
+
         static int print_counter = 0;
         if (print_counter++ % PRINT_EVERY_N == 0) {
             // printf("[Distance Computation] leitura do encoder: %d\n", current_state);
@@ -98,12 +106,22 @@ void distanceComputationHandler(std::binary_semaphore& x_was_sent,
         vel_buffer.producer(vel_data);
         pos_buffer.producer(pos_data);
 
+        // ########################################################################
+        // Sincronização de threads por dupla de semáforos
+        // Notifica CeilingReconstructionTask que a posição foi atualizada no
+        // buffer, se ela já sinalizou que está esperando
         if (x_is_needed.try_acquire()) {
             x_was_sent.release();
         }
-        
+        // ########################################################################
+
+        // ########################################################################
+        // Sincronização de threads por dupla de semáforos
+        // Notifica NavigationControlTask que a velocidade foi atualizada no
+        // buffer, se ela já sinalizou que está esperando
         if (vel_is_needed.try_acquire()) {
             vel_was_sent.release();
         }
+        // ########################################################################
     }
 }

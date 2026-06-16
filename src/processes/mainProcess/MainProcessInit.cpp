@@ -38,6 +38,8 @@ void on_message_main_process(struct mosquitto* mosq, void* userdata,
 }
 
 void mainProcessInit() {
+    // $$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
+    // IPC via MQTT — conecta ao broker, assina tópicos
     mosquitto_lib_init();
     mqtt_client_main = mosquitto_new("robo_main_process", true, NULL);
 
@@ -50,14 +52,21 @@ void mainProcessInit() {
     mosquitto_subscribe(mqtt_client_main, NULL, "atr/sim/lidar", 0);
 
     mosquitto_loop_start(mqtt_client_main);
+    // $$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
 
     CoordBuffer coord_buf;
     PosBuffer pos_buf;
     VelBuffer vel_buf;
+
+    // ########################################################################
+    // Sincronização de threads por duplas de semáforos binários
+    // x_was_sent / x_is_needed: entre DistanceComputation e CeilingReconstruction
+    // vel_was_sent / vel_is_needed: entre DistanceComputation e NavigationControl
     std::binary_semaphore x_was_sent{0};
     std::binary_semaphore x_is_needed{0};
     std::binary_semaphore vel_was_sent{0};
     std::binary_semaphore vel_is_needed{0};
+    // ########################################################################
 
     std::thread t2(ceilingReconstructionHandler, std::ref(x_was_sent),
                    std::ref(x_is_needed), std::ref(pos_buf),
