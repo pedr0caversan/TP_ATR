@@ -13,6 +13,8 @@ const int T_MS = 4;
 const float METERS_PER_ENCODER_SIGNAL = 1;
 
 std::atomic<bool> mqtt_i_encoder{false};
+std::atomic<float> mqtt_i_sim_vel{
+    0.0f};  // velocidade com sinal publicada pela simulação
 
 // static bool i_encoder = false;
 // static int call_count = 0;  // para simulação do encoder
@@ -82,7 +84,12 @@ void distanceComputationHandler(std::binary_semaphore& x_was_sent,
             AÇÕES CASO HAJA MUDANÇA DE ESTADO
             ===================================*/
 
-            pos_data.pos += 1;
+            // usa o sinal da velocidade simulada para determinar a direção do
+            // movimento; permite pos_data.pos decrementar ao andar para
+            // esquerda
+            int direction = (mqtt_i_sim_vel.load() >= 0.0f) ? 1 : -1;
+
+            pos_data.pos += direction;
             printf("[Distance Computation] posição do robô: %d\n",
                    pos_data.pos);
             previous_encoder_state = current_state;
@@ -92,7 +99,7 @@ void distanceComputationHandler(std::binary_semaphore& x_was_sent,
                 std::chrono::duration<double>(now - prev_encoder_timestamp)
                     .count();
             if (dt_s > 0) {
-                double velocity = METERS_PER_ENCODER_SIGNAL / dt_s;
+                double velocity = direction * METERS_PER_ENCODER_SIGNAL / dt_s;
                 vel_data.vel = velocity;
                 printf("[Distance Computation] velocidade do robô: %.2f m/s\n",
                        vel_data.vel);

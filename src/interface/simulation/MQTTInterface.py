@@ -18,6 +18,7 @@ class MQTTInterface:
         actuator_topic: str = "atr/sim/esforco_controle",
         lidar_topic: str = "atr/sim/lidar",
         encoder_topic: str = "atr/sim/encoder",
+        velocity_topic: str = "atr/sim/velocidade",
         actuator_callback: Optional[Callable[[dict], Any]] = None,
     ) -> None:
         self.broker_host = broker_host
@@ -25,6 +26,7 @@ class MQTTInterface:
         self.actuator_topic = actuator_topic
         self.lidar_topic = lidar_topic
         self.encoder_topic = encoder_topic
+        self.velocity_topic = velocity_topic
         self.actuator_callback = actuator_callback or self.default_actuator_callback
 
         self.client = mqtt.Client(CallbackAPIVersion.VERSION1)
@@ -85,9 +87,15 @@ class MQTTInterface:
         self.client.publish(self.encoder_topic, payload)
         logger.debug("Publicado dado encoder em %s: %s", self.encoder_topic, payload)
 
-    def publish_sensor_data(self, lidar_value: float, encoder_value: bool) -> None:
+    def publish_velocity(self, value: float) -> None:
+        payload = str(value)
+        self.client.publish(self.velocity_topic, payload)
+        logger.debug("Publicado velocidade em %s: %s", self.velocity_topic, payload)
+
+    def publish_sensor_data(self, lidar_value: float, encoder_value: bool, velocity: float = 0.0) -> None:
         self.publish_lidar(lidar_value)
         self.publish_encoder(encoder_value)
+        self.publish_velocity(velocity)
 
 
 if __name__ == "__main__":

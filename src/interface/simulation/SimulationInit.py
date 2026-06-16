@@ -84,7 +84,7 @@ class Simulation:
             # print(
             #     f"Lidar: {self.robot.lidar:.2f} m, Encoder: {self.robot.encoder:.2f} m"
             # )
-            self.mqtt.publish_sensor_data(self.robot.lidar, self.robot.encoder)
+            self.mqtt.publish_sensor_data(self.robot.lidar, self.robot.encoder, self.robot.horizontal_speed_m_s)
 
             pygame.display.flip()
 
