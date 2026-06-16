@@ -90,7 +90,7 @@ class Simulation:
             current_time = time.time()
 
             self.move_robot()
-            
+
             self.control_robot()
 
             # TODO: Apagar duas linhas abaixo na versão final, não haverá controle por teclado na simulação

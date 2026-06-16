@@ -17,7 +17,7 @@ static volatile sig_atomic_t normal_flag = 0;
 static void on_normal(int) { normal_flag = 1; }
 
 static bool is_inspecting = false;
-const float AUTO_VELOCITY = 10.0f;
+const float AUTO_VELOCITY = 20.0f;
 
 static int dbg_anomaly_count = 0;
 
@@ -76,6 +76,8 @@ void navigationCommandHandler() {
     mosquitto_subscribe(mqtt_nav, NULL, "atr/cmd/#", 0);
     mosquitto_loop_start(mqtt_nav);  // Roda em background
 
+    anomaly_flag = 0;
+    normal_flag = 0;
     while (true) {
         if (anomaly_flag) {
             anomaly_flag = 0;
@@ -96,6 +98,8 @@ void navigationCommandHandler() {
 
         pthread_mutex_lock(&shm->setpoint_mtx);
         shm->setpoint_vel = is_inspecting ? nova_vel / 4 : nova_vel;
+        // printf("is_inspecting: %d | setpoint_vel: %.2f\n", is_inspecting,
+        // shm->setpoint_vel);
         pthread_mutex_unlock(&shm->setpoint_mtx);
 
         pthread_mutex_lock(&shm->feedback_mtx);
@@ -109,6 +113,8 @@ void navigationCommandHandler() {
         std::string insp_str = is_inspecting ? "1" : "0";
         mosquitto_publish(mqtt_nav, NULL, "atr/telemetria/inspecao",
                           insp_str.length(), insp_str.c_str(), 0, false);
+
+        usleep(1000);
     }
 
     shmdt(shm);

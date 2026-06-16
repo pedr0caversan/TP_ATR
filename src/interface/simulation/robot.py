@@ -134,7 +134,7 @@ class Robot(pygame.sprite.Sprite):
         # TODO (Pedro): tunar os parâmetros pro movimento do robô ficar natural
         # k_atrito: coeficiente de atrito de rolamento (1/s), derivado de a_max e v_max
         # obs: Tau = v_max/a_max = 1/k_atrito
-        a_max = 5.0
+        a_max = 20.0
         k_atrito = (
             a_max / self.max_horizontal_speed
         )  # garante v_ss = max_horizontal_speed
