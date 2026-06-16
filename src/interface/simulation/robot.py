@@ -1,6 +1,8 @@
 import math
 import pygame
 import tunnel
+import random
+
 from pathlib import Path
 
 _BASE_DIR = Path(__file__).parent
@@ -195,7 +197,8 @@ class Robot(pygame.sprite.Sprite):
     def update_lidar(self, tunnel: tunnel, offset_camera: int):
         distance = tunnel.return_distance_to_ceiling(self.rect, offset_camera)
         if distance is not None:
-            self.lidar = distance / self.pixels_per_meter
+            ruido = random.uniform(-0.1,0.1)
+            self.lidar = (distance / self.pixels_per_meter) + ruido
             self.debug_counter += 1
             if self.debug_counter >= PRINT_EVERY_N:
                 self.debug_counter = 0
