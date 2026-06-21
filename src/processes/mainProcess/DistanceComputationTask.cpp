@@ -43,8 +43,8 @@ void distanceComputationHandler(std::binary_semaphore& x_was_sent,
                                 std::binary_semaphore& vel_was_sent,
                                 std::binary_semaphore& vel_is_needed,
                                 PosBuffer& pos_buffer, VelBuffer& vel_buffer) {
-    PosData pos_data = {0};
-    VelData vel_data = {0};
+    PosData pos_data = {0, std::chrono::steady_clock::now()};
+    VelData vel_data = {0, std::chrono::steady_clock::now()};
 
     // $$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
     // IPC via MQTT (indireta) — lê estado atual do encoder publicado por
@@ -90,8 +90,8 @@ void distanceComputationHandler(std::binary_semaphore& x_was_sent,
             int direction = (mqtt_i_sim_vel.load() >= 0.0f) ? 1 : -1;
 
             pos_data.pos += direction;
-            printf("[Distance Computation] posição do robô: %d\n",
-                   pos_data.pos);
+            // printf("[Distance Computation] posição do robô: %d\n",
+            //        pos_data.pos);
             previous_encoder_state = current_state;
 
             // Derivar a velocidade usando tempo real entre eventos
@@ -101,8 +101,8 @@ void distanceComputationHandler(std::binary_semaphore& x_was_sent,
             if (dt_s > 0) {
                 double velocity = direction * METERS_PER_ENCODER_SIGNAL / dt_s;
                 vel_data.vel = velocity;
-                printf("[Distance Computation] velocidade do robô: %.2f m/s\n",
-                       vel_data.vel);
+                // printf("[Distance Computation] velocidade do robô: %.2f m/s\n",
+                //        vel_data.vel);
             }
 
             prev_encoder_timestamp = now;

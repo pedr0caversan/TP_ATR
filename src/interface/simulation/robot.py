@@ -190,9 +190,9 @@ class Robot(pygame.sprite.Sprite):
             self._encoder_print_counter += 1
             if self._encoder_print_counter >= 15:
                 self._encoder_print_counter = 0
-                print(
-                    f"Encoder atualizado: {self.encoder} (coordenada x {self.x_coord_m} m)"
-                )
+                # print(
+                #     f"Encoder atualizado: {self.encoder} (coordenada x {self.x_coord_m} m)"
+                # )
 
     # TODO: IMPLEMENTAR RUÍDO DE MEDIÇÃO
     def update_lidar(self, tunnel: tunnel, offset_camera: int):

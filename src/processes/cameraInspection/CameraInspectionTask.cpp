@@ -47,9 +47,7 @@ void cameraInspectionHandler() {
 
         if (is_inspecting) {
             printf("[CameraInspection] Inspecionando imagens da câmera");
-            for (int i = 0; i < 2000000000; i++) {
-                int j = i;
-            }
+            usleep(500000);  // simula tempo gasto na inspeção
         }
     }
 

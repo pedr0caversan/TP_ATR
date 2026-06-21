@@ -4,11 +4,15 @@
 #include <sys/shm.h>
 #include <unistd.h>
 
+#include <chrono>
 #include <csignal>
 #include <cstdlib>
 #include <iostream>
+#include <thread>
 
 #include "IPC/IPCData.hpp"
+
+const int T_MS = 16;
 
 static volatile sig_atomic_t anomaly_flag = 0;
 static void on_anomaly(int) { anomaly_flag = 1; }
@@ -38,7 +42,7 @@ void on_message_nav_cmd(struct mosquitto* mosq, void* userdata,
 
 void navigationCommandHandler() {
     // $$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
-    // IPC via sinais POSIX 
+    // IPC via sinais POSIX
     signal(SIGUSR1, on_anomaly);
     signal(SIGUSR2, on_normal);
     // $$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
@@ -86,9 +90,13 @@ void navigationCommandHandler() {
     // loop da task
     // ============================================================
 
+    auto next_wake = std::chrono::steady_clock::now();
+
     anomaly_flag = 0;
     normal_flag = 0;
     while (true) {
+        next_wake += std::chrono::milliseconds(T_MS);
+        std::this_thread::sleep_until(next_wake);
         // $$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
         // IPC via MQTT — processa mensagens de entrada de forma síncrona
         mosquitto_loop(mqtt_nav, 0, 1);
@@ -101,7 +109,7 @@ void navigationCommandHandler() {
         // $$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
 
         // $$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
-        // IPC via sinais POSIX 
+        // IPC via sinais POSIX
         if (anomaly_flag) {
             anomaly_flag = 0;
             normal_flag = 0;
@@ -124,10 +132,10 @@ void navigationCommandHandler() {
         // Em inspeção preserva a direção capturada no momento da anomalia;
         // evita forçar marcha à frente quando o robô estava recuando
         pthread_mutex_lock(&shm->setpoint_mtx);
-        // printf("[NavCommand] Nova vel: %.2f | Inspecionando: %d\n", nova_vel, is_inspecting);
-        shm->setpoint_vel = is_inspecting
-                                ? inspection_direction * INSPEC_VELOCITY
-                                : nova_vel;
+        // printf("[NavCommand] Nova vel: %.2f | Inspecionando: %d\n", nova_vel,
+        // is_inspecting);
+        shm->setpoint_vel =
+            is_inspecting ? inspection_direction * INSPEC_VELOCITY : nova_vel;
         // printf("is_inspecting: %d | setpoint_vel: %.2f\n", is_inspecting,
         // shm->setpoint_vel);
         pthread_mutex_unlock(&shm->setpoint_mtx);
@@ -143,8 +151,6 @@ void navigationCommandHandler() {
         mosquitto_publish(mqtt_nav, NULL, "atr/telemetria/inspecao",
                           insp_str.length(), insp_str.c_str(), 0, false);
         // $$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
-
-        usleep(1000);
     }
 
     shmdt(shm);
