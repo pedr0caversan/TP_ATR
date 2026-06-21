@@ -9,8 +9,13 @@
 #include <thread>
 
 #include "IPC/IPCData.hpp"
+#include "utils/analise.hpp"
 #include "utils/coord_buffer.hpp"
 #include "utils/pos_buffer.hpp"
+
+Medicao cr_exec{"CeilingReconstruction"};
+Medicao cr_jitter{"CeilingReconstruction/jitter"};
+Medicao cr_bloqueio{"CeilingReconstruction/sem"};
 
 const int T_MS = 20;
 const float CEILING_HEIGHT = 5.64;
@@ -94,13 +99,17 @@ void ceilingReconstructionHandler(std::binary_semaphore& x_was_sent,
     while (true) {
         next_wake += std::chrono::milliseconds(T_MS);
         std::this_thread::sleep_until(next_wake);
+        cr_jitter.jitter(next_wake, 50);
+        cr_exec.inicio();
 
         // ########################################################################
         // Sincronização de threads por dupla de semáforos
         // Garante que o valor da coordenada já foi atualizado no buffer pela
         // thread de Cálculo de Distância antes de consumir a informação
         x_is_needed.release();
+        cr_bloqueio.inicio();
         x_was_sent.acquire();
+        cr_bloqueio.fim(50);
         PosData pos_data = std::get<PosData>(pos_buf.consumer_latest());
         int x_coord = pos_data.pos;
 
@@ -110,7 +119,8 @@ void ceilingReconstructionHandler(std::binary_semaphore& x_was_sent,
         // chamadas ao sistema desnecessárias
         // auto now = std::chrono::steady_clock::now();
         // double latency_ms =
-        //     std::chrono::duration<double, std::milli>(now - pos_data.timestamp)
+        //     std::chrono::duration<double, std::milli>(now -
+        //     pos_data.timestamp)
         //         .count();
         // printf("[Reconstrução do Teto] latência x: %.3f ms\n", latency_ms);
 
@@ -118,7 +128,7 @@ void ceilingReconstructionHandler(std::binary_semaphore& x_was_sent,
                        std::chrono::steady_clock::now() - task_start)
                        .count();
         float y_coord = mqtt_i_lidar.load();
-        //printf("[Reconstrução do Teto] x: %d, y: %.2f\n", x_coord, y_coord);
+        // printf("[Reconstrução do Teto] x: %d, y: %.2f\n", x_coord, y_coord);
 
         CoordData refined_data = {std::chrono::steady_clock::now(), {0, 0}};
         refined_data.coord[0] = filterValue(f_x, x_coord);
@@ -147,5 +157,7 @@ void ceilingReconstructionHandler(std::binary_semaphore& x_was_sent,
         // envio dos dados percebidos pelo lidar e encoder ao buffer de
         // coordenadas
         coord_buf.producer(refined_data);
+
+        cr_exec.fim(50);
     }
 }

@@ -11,8 +11,19 @@
 #include <thread>
 
 #include "IPC/IPCData.hpp"
+#include "utils/analise.hpp"
 
 const int T_MS = 16;
+
+static Medicao nv_exec{"NavigationCommand"};
+static Medicao nv_jitter{"NavigationCommand/jitter"};
+
+#ifdef ANALISE
+static void on_sigint_nav(int) {
+    resumo_task("NavigationCommand", &nv_exec, &nv_jitter);
+    exit(0);
+}
+#endif
 
 static volatile sig_atomic_t anomaly_flag = 0;
 static void on_anomaly(int) { anomaly_flag = 1; }
@@ -41,6 +52,9 @@ void on_message_nav_cmd(struct mosquitto* mosq, void* userdata,
 }
 
 void navigationCommandHandler() {
+#ifdef ANALISE
+    signal(SIGINT, on_sigint_nav);
+#endif
     // $$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
     // IPC via sinais POSIX
     signal(SIGUSR1, on_anomaly);
@@ -94,9 +108,12 @@ void navigationCommandHandler() {
 
     anomaly_flag = 0;
     normal_flag = 0;
+
     while (true) {
         next_wake += std::chrono::milliseconds(T_MS);
         std::this_thread::sleep_until(next_wake);
+        nv_jitter.jitter(next_wake, 62);
+        nv_exec.inicio();
         // $$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
         // IPC via MQTT — processa mensagens de entrada de forma síncrona
         mosquitto_loop(mqtt_nav, 0, 1);
@@ -151,6 +168,8 @@ void navigationCommandHandler() {
         mosquitto_publish(mqtt_nav, NULL, "atr/telemetria/inspecao",
                           insp_str.length(), insp_str.c_str(), 0, false);
         // $$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
+
+        nv_exec.fim(62);
     }
 
     shmdt(shm);

@@ -3,6 +3,7 @@
 #include <mosquitto.h>
 
 #include <atomic>
+#include <csignal>
 #include <cstdlib>
 #include <semaphore>
 #include <string>
@@ -17,6 +18,15 @@
 #include "utils/vel_buffer.hpp"
 
 struct mosquitto* mqtt_client_main = nullptr;
+
+#ifdef ANALISE
+static void on_sigint_main(int) {
+    resumo_task("DistanceComputation", &dc_exec, &dc_jitter);
+    resumo_task("CeilingReconstruction", &cr_exec, &cr_jitter, &cr_bloqueio);
+    resumo_task("NavigationControl", &nc_exec, &nc_jitter, &nc_bloqueio);
+    exit(0);
+}
+#endif
 
 extern std::atomic<bool> mqtt_i_encoder;
 extern std::atomic<float> mqtt_i_sim_vel;
@@ -42,6 +52,9 @@ void on_message_main_process(struct mosquitto* mosq, void* userdata,
 }
 
 void mainProcessInit() {
+#ifdef ANALISE
+    signal(SIGINT, on_sigint_main);
+#endif
     // $$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
     // IPC via MQTT — conecta ao broker, assina tópicos
     mosquitto_lib_init();

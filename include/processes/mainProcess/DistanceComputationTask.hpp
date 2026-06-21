@@ -4,8 +4,12 @@
 #include <semaphore>
 #include <thread>
 
+#include "utils/analise.hpp"
 #include "utils/pos_buffer.hpp"
 #include "utils/vel_buffer.hpp"
+
+extern Medicao dc_exec;
+extern Medicao dc_jitter;
 
 void distanceComputationHandler(std::binary_semaphore& x_was_sent,
                                 std::binary_semaphore& x_is_needed,

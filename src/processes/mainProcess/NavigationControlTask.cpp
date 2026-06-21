@@ -8,18 +8,24 @@
 #include <string>
 
 #include "IPC/IPCData.hpp"
+#include "utils/analise.hpp"
 
 extern struct mosquitto* mqtt_client_main;
+
+Medicao nc_exec{"NavigationControl"};
+Medicao nc_jitter{"NavigationControl/jitter"};
+Medicao nc_bloqueio{"NavigationControl/sem"};
 
 const int T_MS = 16;
 
 // Parâmetros do controlador PI
-const float Kp = 1;
+const float Kp = 5.0f;
 const float Ki = 0.1;
 
-// TODO (Pedro): sintonizar controlador assim que tiver modelo da planta
+// NOTE (Pedro): controlador PI não funcionou
 float velocityController(float reference, float feedback) {
-    // printf("[Controle Navegação] setpoint: %.2f | feedback: %.2f\n", reference,
+    // printf("[Controle Navegação] setpoint: %.2f | feedback: %.2f\n",
+    // reference,
     //        feedback);
     static float integral = 0.0f;
     const float T_S = T_MS / 1000.0f;
@@ -42,7 +48,7 @@ float velocityController(float reference, float feedback) {
     // TODO (Pedro): reativar controlador
     // para testes iniciais, a dinâmica da planta vai ser deixada livre, sem
     // controle
-    return 5 * e;
+    return Kp * e;
 }
 
 void navigationControlHandler(std::binary_semaphore& vel_was_sent,
@@ -78,13 +84,17 @@ void navigationControlHandler(std::binary_semaphore& vel_was_sent,
         // Tarefa com período definido
         next_wake += std::chrono::milliseconds(T_MS);
         std::this_thread::sleep_until(next_wake);
+        nc_jitter.jitter(next_wake, 62);
+        nc_exec.inicio();
 
         // ########################################################################
         // Sincronização de threads por dupla de semáforos
         // Sinaliza que precisa da velocidade e aguarda DistanceComputationTask
         // confirmar que o buffer foi atualizado
         vel_is_needed.release();
+        nc_bloqueio.inicio();
         vel_was_sent.acquire();
+        nc_bloqueio.fim(62);
         VelData vel_data = std::get<VelData>(vel_buffer.consumer_latest());
         float feedback_vel = vel_data.vel;
         // ########################################################################
@@ -124,14 +134,7 @@ void navigationControlHandler(std::binary_semaphore& vel_was_sent,
         pthread_mutex_unlock(&navigation_info->feedback_mtx);
         // $$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
 
-        // auto now = std::chrono::steady_clock::now();
-        // double latency_ms =
-        //     std::chrono::duration<double, std::milli>(now -
-        //     vel_data.timestamp)
-        //         .count();
-        // printf(
-        //     "[Controle Navegação] setpoint: %.2f | vel: %.2f | latência: %.3f
-        //     " "ms\n", setpoint, feedback_vel, latency_ms);
+        nc_exec.fim(62);
     }
 
     shmdt(navigation_info);

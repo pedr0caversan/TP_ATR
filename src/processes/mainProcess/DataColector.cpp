@@ -5,6 +5,7 @@
 
 #include <iostream>
 
+#include "utils/analise.hpp"
 #include "utils/coord_buffer.hpp"
 
 extern struct mosquitto* mqtt_client_main;
@@ -45,7 +46,7 @@ void saveDataDisk(const CoordData& item, float confidence) {
     static std::ofstream
         file;  // mantido aberto, evita open e close por escrita
     static int write_count = 0;
-    
+
     if (!file.is_open()) {
         bool write_header = false;
 
@@ -89,7 +90,10 @@ void saveDataDisk(const CoordData& item, float confidence) {
     // Flush é uma syscall muito custosa, e para um sistema de arquivos não é
     // crítico que a transferência dos dados para o kernel seja feita toda iteração
     if (++write_count >= FLUSH_EVERY_N) {
+        static Medicao t_flush{"DataColector/flush"};
+        t_flush.inicio();
         file.flush();
+        t_flush.fim(1);
         write_count = 0;
     }
 }

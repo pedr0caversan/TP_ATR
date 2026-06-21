@@ -7,7 +7,12 @@
 #include <iostream>
 #include <thread>
 
+#include "utils/analise.hpp"
+
 const int PRINT_EVERY_N = 5;
+
+Medicao dc_exec{"DistanceComputation"};
+Medicao dc_jitter{"DistanceComputation/jitter"};
 
 const int T_MS = 4;
 const float METERS_PER_ENCODER_SIGNAL = 1;
@@ -16,27 +21,6 @@ std::atomic<bool> mqtt_i_encoder{false};
 std::atomic<float> mqtt_i_sim_vel{
     0.0f};  // velocidade com sinal publicada pela simulação
 
-// static bool i_encoder = false;
-// static int call_count = 0;  // para simulação do encoder
-
-/*
-void simulateEncoder(double t) {
-    call_count++;
-
-    // alterna entre estados a cada segundo
-    int mode = static_cast<int>(t) % 2;
-
-    if (mode == 0) {
-        // muda de estado a toda execução
-        i_encoder = !i_encoder;
-    } else {
-        // muda de estado a cada duas execuções
-        if (call_count % 2 == 0) {
-            i_encoder = !i_encoder;
-        }
-    }
-}
-*/
 
 void distanceComputationHandler(std::binary_semaphore& x_was_sent,
                                 std::binary_semaphore& x_is_needed,
@@ -64,6 +48,8 @@ void distanceComputationHandler(std::binary_semaphore& x_was_sent,
         // Definição do período da tarefa
         next_wake += std::chrono::milliseconds(T_MS);
         std::this_thread::sleep_until(next_wake);
+        dc_jitter.jitter(next_wake, 250);
+        dc_exec.inicio();
 
         auto now = std::chrono::steady_clock::now();
 
@@ -101,7 +87,8 @@ void distanceComputationHandler(std::binary_semaphore& x_was_sent,
             if (dt_s > 0) {
                 double velocity = direction * METERS_PER_ENCODER_SIGNAL / dt_s;
                 vel_data.vel = velocity;
-                // printf("[Distance Computation] velocidade do robô: %.2f m/s\n",
+                // printf("[Distance Computation] velocidade do robô: %.2f
+                // m/s\n",
                 //        vel_data.vel);
             }
 
@@ -127,5 +114,6 @@ void distanceComputationHandler(std::binary_semaphore& x_was_sent,
             vel_was_sent.release();
         }
         // ########################################################################
+        dc_exec.fim(250);
     }
 }
