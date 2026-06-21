@@ -9,6 +9,8 @@
 
 extern struct mosquitto* mqtt_client_main;
 
+static constexpr int FLUSH_EVERY_N = 10;
+
 void updateHistory(std::vector<CoordData>& history, const CoordData& new_item) {
     history.push_back(new_item);
     if (history.size() > 50) {
@@ -27,8 +29,9 @@ float calcConfidence(const CoordData& item, std::vector<CoordData>& history) {
     float conf = 0.0;
     for (const auto& past_item : history) {
         auto time_diff = std::chrono::duration_cast<std::chrono::milliseconds>(
-            item.timestamp - past_item.timestamp);
-        // Caso diferença de tempo menor que 100ms, aumenta a confiança
+            item.timestamp -
+            past_item.timestamp);  // Caso diferença de tempo menor que 100ms,
+                                   // aumenta a confiança
         if (time_diff.count() < 500) {
             conf += 0.1;
         }
@@ -38,35 +41,41 @@ float calcConfidence(const CoordData& item, std::vector<CoordData>& history) {
 
 void saveDataDisk(const CoordData& item, float confidence) {
     const std::string filename = "data_log.csv";
-    bool write_header = false;
     static bool first_run = true;
-
-    // Verifica se o arquivo existe e está vazio
-    {
-        std::ifstream check(filename);
-        if (!check.good() ||
-            check.peek() == std::ifstream::traits_type::eof()) {
-            write_header = true;
-        }
-        check.close();
-    }
-
-    std::ofstream file(filename, std::ios::app);
+    static std::ofstream
+        file;  // mantido aberto, evita open e close por escrita
+    static int write_count = 0;
+    
     if (!file.is_open()) {
-        std::cerr << "Erro: Não foi possível abrir arquivo " << filename
-                  << " (pwd: " << getcwd(nullptr, 0) << ")" << std::endl;
-        return;
-    }
+        bool write_header = false;
 
-    if (first_run) {
-        std::cerr << "[DataColector] Arquivo de log criado/aberto em: "
-                  << filename << std::endl;
-        first_run = false;
-    }
+        // Verifica se o arquivo existe e está vazio
+        {
+            std::ifstream check(filename);
+            if (!check.good() ||
+                check.peek() == std::ifstream::traits_type::eof()) {
+                write_header = true;
+            }
+            check.close();
+        }
 
-    if (write_header) {
-        file << "timestamp,coord_x,coord_y,confidence\n";
-        std::cerr << "[DataColector] Header escrito no CSV" << std::endl;
+        file.open(filename, std::ios::app);
+        if (!file.is_open()) {
+            std::cerr << "Erro: Não foi possível abrir arquivo " << filename
+                      << " (pwd: " << getcwd(nullptr, 0) << ")" << std::endl;
+            return;
+        }
+
+        if (first_run) {
+            std::cerr << "[DataColector] Arquivo de log criado/aberto em: "
+                      << filename << std::endl;
+            first_run = false;
+        }
+
+        if (write_header) {
+            file << "timestamp,coord_x,coord_y,confidence\n";
+            std::cerr << "[DataColector] Header escrito no CSV" << std::endl;
+        }
     }
 
     const auto timestamp_ms =
@@ -77,8 +86,12 @@ void saveDataDisk(const CoordData& item, float confidence) {
     file << timestamp_ms << ',' << item.coord[0] << ',' << item.coord[1] << ','
          << confidence << '\n';
 
-    // Force sincronização com disco
-    file.flush();
+    // Flush é uma syscall muito custosa, e para um sistema de arquivos não é
+    // crítico que a transferência dos dados para o kernel seja feita toda iteração
+    if (++write_count >= FLUSH_EVERY_N) {
+        file.flush();
+        write_count = 0;
+    }
 }
 
 void saveDataTopic(const CoordData& item, float confidence) {
